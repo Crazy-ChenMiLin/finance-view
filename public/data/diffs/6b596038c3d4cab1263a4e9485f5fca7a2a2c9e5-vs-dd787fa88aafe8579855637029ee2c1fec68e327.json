@@ -1,0 +1,21 @@
+{
+  "baseSha": "6b596038c3d4cab1263a4e9485f5fca7a2a2c9e5",
+  "baseShortSha": "6b59603",
+  "targetSha": "dd787fa88aafe8579855637029ee2c1fec68e327",
+  "targetShortSha": "dd787fa",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "src/api/contract/sales-contract.ts",
+    "src/views/finance/receipt-ledger/index.vue",
+    "src/views/finance/receipt-plan/index.vue"
+  ]
+}

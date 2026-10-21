@@ -1,0 +1,109 @@
+{
+  "baseSha": "3902e3169cec95be8e3d1d3290b75b0514a6ead0",
+  "baseShortSha": "3902e31",
+  "targetSha": "afacd2cfa4e24fdd42821c22b1ffcb47f6bb13cc",
+  "targetShortSha": "afacd2c",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 3,
+    "totalAffected": 14
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [
+    {
+      "id": "db-base",
+      "name": "MySQL `base` 财务主库",
+      "system": "database",
+      "sourcePath": "sydo_oa_finance/app/db/mysql.py",
+      "role": "财务中台持久层：存储 PR、PO、合同、验收、发票、付款、签名会话等 40+ 核心业务表。",
+      "depChanged": false,
+      "entryChanged": false,
+      "wasModifiedInCommit": true,
+      "before": {
+        "dependencies": [],
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"base\"]",
+          "atomic_transaction()"
+        ]
+      },
+      "after": {
+        "dependencies": [],
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"base\"]",
+          "atomic_transaction()"
+        ]
+      }
+    },
+    {
+      "id": "db-pm",
+      "name": "MySQL `pm` 项目独立库",
+      "system": "database",
+      "sourcePath": "sydo_oa_finance/app/db/mysql.py",
+      "role": "工程项目管理独立库：全只读查询 projects、预算科目与项目编码，与财务库物理解耦。",
+      "depChanged": false,
+      "entryChanged": false,
+      "wasModifiedInCommit": true,
+      "before": {
+        "dependencies": [],
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"pm\"]",
+          "select_projects_readonly()"
+        ]
+      },
+      "after": {
+        "dependencies": [],
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"pm\"]",
+          "select_projects_readonly()"
+        ]
+      }
+    },
+    {
+      "id": "db-manpower",
+      "name": "MySQL `manpower` 人力库",
+      "system": "database",
+      "sourcePath": "sydo_oa_finance/app/db/mysql.py",
+      "role": "人力资源与组织架构库：存储部门树、岗位职责、直属主管与工号鉴权信息。",
+      "depChanged": false,
+      "entryChanged": false,
+      "wasModifiedInCommit": true,
+      "before": {
+        "dependencies": [],
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"manpower\"]",
+          "query_employee_hierarchy()"
+        ]
+      },
+      "after": {
+        "dependencies": [],
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"manpower\"]",
+          "query_employee_hierarchy()"
+        ]
+      }
+    }
+  ],
+  "affectedModuleIds": [
+    "db-base",
+    "db-pm",
+    "db-manpower",
+    "srv-purchase-pr",
+    "srv-purchase-plan",
+    "srv-purchase-po",
+    "srv-purchase-contract",
+    "srv-purchase-accept",
+    "srv-execution-ledger",
+    "srv-expense-facade",
+    "srv-approval-callback",
+    "srv-signature-session",
+    "srv-purchase-invoice",
+    "srv-purchase-payment"
+  ],
+  "changedFiles": [
+    "app/db/mysql.py",
+    "tests/test_mysql_register.py",
+    "tests/test_receipt_query_service.py"
+  ]
+}

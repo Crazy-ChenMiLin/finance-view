@@ -1,0 +1,22 @@
+{
+  "name": "finance-view",
+  "version": "1.0.0",
+  "description": "Living Architecture & System Visualization Platform for Enterprise Finance & Procurement OA Platform",
+  "main": "scripts/build-site.js",
+  "scripts": {
+    "build": "node scripts/build-site.js",
+    "sync": "node scripts/sync-upstream.js",
+    "audit": "node -e \"require('./scripts/security-sanitizer').sanitizeAndVerifyDirectory('./dist')\"",
+    "serve": "node scripts/dev-server.js"
+  },
+  "keywords": [
+    "living-architecture",
+    "finance-oa",
+    "github-pages",
+    "system-visualization",
+    "interactive-explainer",
+    "procurement-lifecycle"
+  ],
+  "author": "Crazy-ChenMiLin",
+  "license": "MIT"
+}

@@ -1,0 +1,19 @@
+{
+  "baseSha": "1c3fe9fc42e2ecebcff114725b46b67e51d9006c",
+  "baseShortSha": "1c3fe9f",
+  "targetSha": "6a1a1213766106a510604884d1f6817593f3e45a",
+  "targetShortSha": "6a1a121",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "app/api/service/purchase_plan_service.py"
+  ]
+}

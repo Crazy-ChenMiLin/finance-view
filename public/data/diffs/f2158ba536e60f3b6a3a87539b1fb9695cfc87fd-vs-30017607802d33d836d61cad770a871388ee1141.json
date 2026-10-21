@@ -1,0 +1,20 @@
+{
+  "baseSha": "f2158ba536e60f3b6a3a87539b1fb9695cfc87fd",
+  "baseShortSha": "f2158ba",
+  "targetSha": "30017607802d33d836d61cad770a871388ee1141",
+  "targetShortSha": "3001760",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "src/api/outsourcing/purchase-plan.ts",
+    "src/views/authority/outsourcing/purchase-plan/index.vue"
+  ]
+}

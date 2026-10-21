@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance · 企业财务与采购数智化平台 Living Architecture</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">F</div>
+      <div>
+        <div class="brand-title">
+          Finance · 企业财务与采购数智化平台
+          <span class="badge-tag">Living Architecture</span>
+          <span class="badge-tag badge-pages">GitHub Pages</span>
+        </div>
+        <div class="brand-sub">思远道 OA 采购-财务全周期执行闭环 · 独立知识图谱与动态交互看板</div>
+      </div>
+    </div>
+
+    <!-- Control Bar -->
+    <div class="control-bar">
+      <select id="system-filter" class="select-control" title="按系统层级过滤">
+        <option value="all">🌐 全部系统层级 (All Systems)</option>
+        <option value="web">💻 Finance-Web 前端工作台</option>
+        <option value="server">⚙️ Finance-Server 核心服务</option>
+        <option value="external">☁️ 外部协同与移动生态</option>
+        <option value="database">🗄️ 三库分离持久层底座</option>
+      </select>
+
+      <select id="version-selector" class="select-control" title="选择历史 Git 快照版本">
+        <option value="latest">📌 当前基线版本 (HEAD @ chen)</option>
+      </select>
+
+      <button id="diff-mode-btn" class="btn" onclick="toggleDiffMode()">
+        <span>🔍 架构差异比对 (Diff)</span>
+      </button>
+
+      <input type="text" id="global-search" class="search-input" placeholder="🔍 搜索模块/函数/链路...">
+    </div>
+  </header>
+
+  <!-- Metric Stat Banner -->
+  <div class="metrics-banner">
+    <div class="metric-group">
+      <div class="metric-item">
+        <span class="metric-pill pill-server">FastAPI</span>
+        <span>核心路由：</span>
+        <strong>302+ 端点</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-pill pill-database">MySQL + Redis</span>
+        <span>数据库集群：</span>
+        <strong>3 库物理隔离</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-pill pill-web">Vue 3</span>
+        <span>采购闭环：</span>
+        <strong>6 核心阶段</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-pill pill-external">WPS WebOffice</span>
+        <span>正文回写：</span>
+        <strong>毫秒级书签注入</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-pill pill-server">Ledger</span>
+        <span>执行台账：</span>
+        <strong>22 维全景宽表</strong>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 6px;">
+      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></span>
+      <span>GitLab Pages CI/CD 自动化校验就绪</span>
+    </div>
+  </div>
+
+  <!-- Navigation View Tabs -->
+  <nav class="view-tabs">
+    <button class="tab-btn active" data-tab="topology">
+      <span>🗺️ 2D 架构拓扑全景</span>
+    </button>
+    <button class="tab-btn" data-tab="callchains">
+      <span>🔄 业务时序与核心调用链</span>
+    </button>
+    <button class="tab-btn" data-tab="modules">
+      <span>📦 代码模块与知识图谱</span>
+    </button>
+    <button class="tab-btn" data-tab="diff">
+      <span>⚡ 跨版本架构演化 Diff</span>
+    </button>
+    <button class="tab-btn" data-tab="deployment">
+      <span>🚀 GitLab Pages 部署指南</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Body -->
+  <main class="app-content">
+
+    <!-- Panel 1: Topology -->
+    <section id="panel-topology" class="tab-panel active">
+      <div class="topology-card">
+        <div class="topology-header">
+          <div class="topology-title">
+            <span>🌐 企业数智化运营平台 · 四层端到端架构拓扑图</span>
+            <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">(点击任意模块卡片查看 AST 细节与调用依赖)</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="highlightTopologyCallChain('flow-procurement-lifecycle')">高亮采购链路</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="highlightTopologyCallChain('flow-scan-to-sign')">高亮扫码签名</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="highlightTopologyCallChain('flow-budget-dual-track')">高亮预算校验</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="highlightTopologyCallChain('')">重置高亮</button>
+          </div>
+        </div>
+        <div class="topology-viewport">
+          <svg id="topology-svg"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 2: Call Chains & Mermaid Diagrams -->
+    <section id="panel-callchains" class="tab-panel">
+      <div class="call-chain-section">
+        <div class="chain-picker-bar" id="chain-picker-bar"></div>
+        <div class="mermaid-card">
+          <h3 id="mermaid-title" style="font-size: 18px; margin-bottom: 8px; color: #fff;"></h3>
+          <p id="mermaid-desc" class="mermaid-desc"></p>
+          <div id="mermaid-output" style="display: flex; justify-content: center; min-height: 400px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 3: Modules AST Explorer -->
+    <section id="panel-modules" class="tab-panel">
+      <div style="margin-bottom: 12px; color: var(--text-muted); font-size: 13.5px;">
+        已深度扫描 <code>finance-frontend</code> 与 <code>sydo_oa_finance</code> 核心代码仓库，提取 20+ 关键业务服务与领域模型组件：
+      </div>
+      <div class="modules-grid" id="modules-grid"></div>
+    </section>
+
+    <!-- Panel 4: Version Diff Mode -->
+    <section id="panel-diff" class="tab-panel">
+      <div class="diff-container">
+        <div class="diff-stat-cards">
+          <div class="diff-stat-card">
+            <div class="diff-badge-icon diff-add-bg">+</div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">新增模块 (Added)</div>
+              <div style="font-size: 20px; font-weight: 800; color: #10b981;" id="diff-added-count">2</div>
+            </div>
+          </div>
+          <div class="diff-stat-card">
+            <div class="diff-badge-icon diff-mod-bg">~</div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">演进变更 (Modified)</div>
+              <div style="font-size: 20px; font-weight: 800; color: #38bdf8;" id="diff-mod-count">5</div>
+            </div>
+          </div>
+          <div class="diff-stat-card">
+            <div class="diff-badge-icon diff-del-bg">-</div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">移除模块 (Removed)</div>
+              <div style="font-size: 20px; font-weight: 800; color: #ef4444;" id="diff-del-count">0</div>
+            </div>
+          </div>
+          <div class="diff-stat-card">
+            <div class="diff-badge-icon" style="background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid #a855f7;">Σ</div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">影响上下游范围</div>
+              <div style="font-size: 20px; font-weight: 800; color: #a855f7;">7 关键链路</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="diff-list-card">
+          <h4 style="font-size: 15px; margin-bottom: 12px; color: #fff;">📌 近期关键提交架构演化细节 (Git Blame 追踪)：</h4>
+          
+          <div class="diff-module-item modified">
+            <div>
+              <div style="font-weight: 700; color: #38bdf8;">~ PurchaseAcceptanceService & ReceiptQueryService</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Commit <code>4da0b6f</code>: 计划生成订单可验收且已验收须审批通过；落地 22 维执行宽表聚合算法。</div>
+            </div>
+            <span class="badge-tag" style="background:rgba(56,189,248,0.2); color:#38bdf8;">Outsourcing 核心</span>
+          </div>
+
+          <div class="diff-module-item modified">
+            <div>
+              <div style="font-weight: 700; color: #38bdf8;">~ SignatureScanSessionService & MobileSignature</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Commit <code>1960895</code>: 引入扫码签名会话状态机，解决 PC 端发起到手机端触控画布防重放与防篡改验证。</div>
+            </div>
+            <span class="badge-tag" style="background:rgba(56,189,248,0.2); color:#38bdf8;">高难工程亮点</span>
+          </div>
+
+          <div class="diff-module-item added">
+            <div>
+              <div style="font-weight: 700; color: #10b981;">+ ContractDocPipeline & WPS Bookmark Injection</div>
+              <div style="font-size: 12px; color: var(--text-muted);">新增 WPS 开放平台书签变量替换引擎与印章自动合成管线，生成只读不可篡改 PDF。</div>
+            </div>
+            <span class="badge-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">文档管线</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 5: GitHub Pages Deployment -->
+    <section id="panel-deployment" class="tab-panel">
+      <div style="background: #0b1325; border: 1px solid var(--border); border-radius: 12px; padding: 24px; max-width: 900px; margin: 0 auto;">
+        <h3 style="font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+          <span>🚀 GitHub Pages 自动化构建与持续发布</span>
+        </h3>
+        <p style="color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 16px;">
+          本平台采用与原业务仓库绝对解耦的架构设计，完全托管于独立 GitHub 仓库，并通过 <strong>GitHub Actions</strong> 自动化构建并发布到 <strong>GitHub Pages</strong>。
+        </p>
+
+        <div style="background: #111a2e; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;">
+          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">🌐 GitHub Pages 在线访问地址：</div>
+          <a href="https://crazy-chenmilin.github.io/finance-view/" target="_blank" style="font-size: 15px; font-weight: 700; color: #38bdf8; text-decoration: none;">
+            👉 https://crazy-chenmilin.github.io/finance-view/
+          </a>
+        </div>
+
+        <h4 style="font-size: 15px; color: var(--primary); margin-bottom: 8px;">📄 GitHub Actions 工作流配置 (.github/workflows/living-architecture.yml)：</h4>
+        <pre class="code-box" style="margin-bottom: 20px; line-height: 1.6;">
+name: Living Architecture CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3,9,15,21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  check-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --production=false
+      - run: node scripts/build-site.js
+      - run: node -e "require('./scripts/security-sanitizer').sanitizeAndVerifyDirectory('./dist')"
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+      - uses: actions/deploy-pages@v4
+        </pre>
+
+        <h4 style="font-size: 15px; color: #10b981; margin-bottom: 8px;">🛡️ 核心合规与架构隔离保障：</h4>
+        <ul style="color: #cbd5e1; font-size: 13.5px; line-height: 1.8; margin-left: 20px; margin-bottom: 20px;">
+          <li><strong>双库严格解耦</strong>：公司核心业务仓库（<code>finance</code>）保持 100% 原始纯净，禁止混入任何外部 CI、文档生成脚本或临时文件。</li>
+          <li><strong>零凭据泄露 (Zero Credential Leak)</strong>：内置 <code>security-sanitizer.js</code> 自动脱敏内部服务器 IP、数据库明文密码及内部 Token。</li>
+          <li><strong>只读 AST 架构抽取</strong>：通过独立扫描器以纯只读方式挂载历史 Commit 结构，动态提取业务链路拓扑。</li>
+          <li><strong>本地即时预览</strong>：已启动专属轻量服务 <code>http://localhost:8088</code>，开箱即用。</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Node Inspector Overlay & Drawer -->
+  <div id="inspector-overlay" class="inspector-overlay" onclick="if(event.target===this)closeInspector()">
+    <div class="inspector-drawer">
+      <div class="drawer-header">
+        <div>
+          <div id="drawer-node-title" class="drawer-title"></div>
+          <div id="drawer-node-sys" style="margin-top: 4px;"></div>
+        </div>
+        <button class="drawer-close" onclick="closeInspector()">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-section">
+          <div class="drawer-label">业务职责与领域作用</div>
+          <p id="drawer-node-role" style="font-size: 13.5px; color: #cbd5e1; line-height: 1.6;"></p>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-label">真实源码定位 (Source Path)</div>
+          <div id="drawer-node-path" class="code-box"></div>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-label">核心入口方法与安全保证 (Entrypoints & Guards)</div>
+          <ul id="drawer-node-entrypoints" class="code-list"></ul>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-label">架构合规与安全脱敏</div>
+          <div style="font-size: 12.5px; color: #10b981; line-height: 1.6;">
+            ✅ 静态 AST 与 302+ 路由已全量核验<br>
+            ✅ 敏感凭据/数据库密码已脱敏过滤<br>
+            ✅ 符合 GitHub Pages 静态托管安全审计规范
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div>
+      <strong>Finance OA Living Architecture Platform</strong> · 思远道企业数智化运营平台架构全景
+    </div>
+    <div class="footer-links">
+      <span>部署状态：<strong style="color:#10b981;">● GitHub Pages Ready</strong></span>
+      <span>GitHub 仓库：<a href="https://github.com/Crazy-ChenMiLin/finance-view" target="_blank" class="footer-link">Crazy-ChenMiLin/finance-view</a></span>
+      <span>本地预览：<a href="http://localhost:8088" target="_blank" class="footer-link">http://localhost:8088</a></span>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

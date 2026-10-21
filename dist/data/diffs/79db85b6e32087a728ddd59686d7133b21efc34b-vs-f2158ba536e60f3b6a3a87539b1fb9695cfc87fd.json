@@ -1,0 +1,54 @@
+{
+  "baseSha": "79db85b6e32087a728ddd59686d7133b21efc34b",
+  "baseShortSha": "79db85b",
+  "targetSha": "f2158ba536e60f3b6a3a87539b1fb9695cfc87fd",
+  "targetShortSha": "f2158ba",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 1,
+    "totalAffected": 1
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [
+    {
+      "id": "web-purchase-request",
+      "name": "PurchaseRequestView",
+      "system": "web",
+      "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-request/page.vue",
+      "role": "采购申请填报：支持物料明细录入、费用出处选择、预算科目穿透查询及发起审批。",
+      "depChanged": false,
+      "entryChanged": false,
+      "wasModifiedInCommit": true,
+      "before": {
+        "dependencies": [
+          "srv-purchase-pr",
+          "srv-expense-facade"
+        ],
+        "entrypoints": [
+          "handleSubmit()",
+          "handleBudgetCheck()",
+          "fetchProjectList()"
+        ]
+      },
+      "after": {
+        "dependencies": [
+          "srv-purchase-pr",
+          "srv-expense-facade"
+        ],
+        "entrypoints": [
+          "handleSubmit()",
+          "handleBudgetCheck()",
+          "fetchProjectList()"
+        ]
+      }
+    }
+  ],
+  "affectedModuleIds": [
+    "web-purchase-request"
+  ],
+  "changedFiles": [
+    "src/views/authority/outsourcing/purchase-request/page.vue"
+  ]
+}

@@ -1,0 +1,456 @@
+{
+  "sha": "6c4dd7a53b3752cf519c98289073838c2e958b0a",
+  "shortSha": "6c4dd7a",
+  "repo": "sydo_oa_finance",
+  "date": "2026-10-21 17:22:46 +0800",
+  "author": "xupeng",
+  "message": "fix(purchase-order): 多库环境下指定 base 事务连接",
+  "changedFiles": [
+    "app/api/service/purchase_order_service.py"
+  ],
+  "modifiedModules": [],
+  "upstreamImpact": [],
+  "downstreamImpact": [],
+  "blueprint": {
+    "systems": [
+      {
+        "id": "web",
+        "name": "Finance-Web 前端工作台",
+        "tech": "Vue 3 + Vite + Element Plus + Pinia + TailwindCSS",
+        "role": "企业财务与采购业务操作中台，涵盖采购全生命周期、立项、预算、发票、付款、移动签名与供应商管理。"
+      },
+      {
+        "id": "server",
+        "name": "Finance-Server 核心业务调度中枢",
+        "tech": "FastAPI + Tortoise ORM + Pydantic + Uvicorn",
+        "role": "财务中台业务核心，承载 302+ RESTful 接口、跨库分布式事务校验、复杂审批状态机与文档正文回写管线。"
+      },
+      {
+        "id": "database",
+        "name": "三库分离持久化数据底座",
+        "tech": "MySQL 8.0 (多连接池) + Redis 7.0 (会话与分布式锁)",
+        "role": "财务主库 (base)、项目独立库 (pm)、人力组织库 (manpower) 物理隔离集群，确保高内聚低耦合。"
+      },
+      {
+        "id": "external",
+        "name": "企业级第三方协同与外联中台",
+        "tech": "WPS Web Office + 腾讯云 COS + 金税 OCR + 外部 OA 审批流",
+        "role": "提供文档在线正文书签回写、移动端扫码签名图归档、增值税发票验真防伪与工作流引擎对接。"
+      }
+    ],
+    "modules": [
+      {
+        "id": "web-purchase-request",
+        "name": "PurchaseRequestView",
+        "system": "web",
+        "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-request/page.vue",
+        "role": "采购申请填报：支持物料明细录入、费用出处选择、预算科目穿透查询及发起审批。",
+        "entrypoints": [
+          "handleSubmit()",
+          "handleBudgetCheck()",
+          "fetchProjectList()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-pr",
+          "srv-expense-facade"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "web-purchase-plan",
+        "name": "PurchasePlanView",
+        "system": "web",
+        "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-plan/page.vue",
+        "role": "采购计划与询比价方案：导入供应商报价明细、比价评估、分摊预算并生成采购订单(PO)。",
+        "entrypoints": [
+          "handleQuoteComparison()",
+          "generatePOFromPlan()",
+          "exportPlanDetail()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-plan"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "web-purchase-order",
+        "name": "PurchaseOrderView",
+        "system": "web",
+        "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-order/index.vue",
+        "role": "采购订单台账：多维检索订单编号、供应商、含税总额、合同状态与交货期限。",
+        "entrypoints": [
+          "fetchOrderList()",
+          "viewOrderDetail()",
+          "triggerContractCreation()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-po",
+          "srv-purchase-contract"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "web-purchase-contract",
+        "name": "PurchaseContractView",
+        "system": "web",
+        "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-contract/index.vue",
+        "role": "采购合同工作台：关联合同编号、查看正文在线预览、发起用印审批与免签判定。",
+        "entrypoints": [
+          "previewContractDoc()",
+          "submitApproval()",
+          "linkMobileSignature()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-contract",
+          "srv-doc-pipeline",
+          "ext-wps"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "web-purchase-acceptance",
+        "name": "PurchaseAcceptanceView",
+        "system": "web",
+        "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-acceptance/index.vue",
+        "role": "采购验收台账：支持分批到货多次验收、固定资产转固标记、验收报告签署。",
+        "entrypoints": [
+          "createAcceptance()",
+          "verifyOrderBalance()",
+          "markFixedAsset()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-accept"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "web-purchase-payment",
+        "name": "PurchasePaymentTriadView",
+        "system": "web",
+        "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-payment/index.vue",
+        "role": "付款三层中枢：付款申请(Request) -> 资金提报(Proposal) -> 月度计划(Plan) 穿透流转。",
+        "entrypoints": [
+          "submitProposal()",
+          "generateMonthlyPlan()",
+          "auditPaymentBalance()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-payment",
+          "srv-purchase-invoice"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "srv-expense-facade",
+        "name": "ExpenseService & Router",
+        "system": "server",
+        "sourcePath": "sydo_oa_finance/app/api/service/sys/expense_service.py",
+        "role": "费用与项目门面：统一派发借款、报销、预算科目、PM 项目库只读查询与统一权限拦截。",
+        "entrypoints": [
+          "list_pm_projects_all()",
+          "delegate_expense_action()",
+          "audit_account_state()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "db-base",
+          "db-pm",
+          "db-manpower"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "srv-approval-callback",
+        "name": "ExternalApprovalCallbackService",
+        "system": "server",
+        "sourcePath": "sydo_oa_finance/app/api/service/sys/external_recruitment_approval_service.py",
+        "role": "外部 OA 审批流中枢：接收外部审批流 WebHook 异步回调、状态幂等转换与下游单据激活。",
+        "entrypoints": [
+          "handle_approval_callback()",
+          "parse_flow_instance()",
+          "trigger_downstream_event()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "db-base",
+          "ext-oa"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "srv-signature-session",
+        "name": "SignatureScanSessionService",
+        "system": "server",
+        "sourcePath": "sydo_oa_finance/app/models/domain/signature_scan_session.py",
+        "role": "扫码手写签名状态机：会话初始化 -> 二维码生成 -> 手机扫码 -> 画布签名 -> 验签防重放。",
+        "entrypoints": [
+          "create_scan_session()",
+          "poll_session_status()",
+          "commit_mobile_signature()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "db-base",
+          "db-redis",
+          "ext-mobile-sign",
+          "ext-cos"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "ext-mobile-sign",
+        "name": "MobileCanvasSignature (H5)",
+        "system": "external",
+        "sourcePath": "finance-frontend/src/views/authority/mobile-signature/index.vue",
+        "role": "移动端扫码手写板：手机浏览器/微信中加载，贝塞尔平滑笔触采集手写体与时戳。",
+        "entrypoints": [
+          "initSignatureCanvas()",
+          "exportSmoothPNG()",
+          "submitEncryptedSignature()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-signature-session"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "ext-oa",
+        "name": "External OA Approval Workflow",
+        "system": "external",
+        "sourcePath": "sydo_oa_finance/app/core/events.py",
+        "role": "企业人力与行政审批流：提供分级领导审批路由、钉钉/微信消息提醒与审批结论回调。",
+        "entrypoints": [
+          "push_workflow_instance()",
+          "notify_approvers()",
+          "post_approval_callback()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-approval-callback"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "ext-wps",
+        "name": "WPS Web Office Cloud API",
+        "system": "external",
+        "sourcePath": "sydo_oa_finance/app/api/service/sys/wps_auth_service.py",
+        "role": "金山 WPS 开放平台：在线 Office 文档即时协作渲染、书签变量注入与公文格式套红。",
+        "entrypoints": [
+          "get_wps_preview_token()",
+          "save_document_content()",
+          "export_pdf_stream()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-doc-pipeline"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "ext-cos",
+        "name": "Tencent Cloud COS Storage",
+        "system": "external",
+        "sourcePath": "sydo_oa_finance/app/api/service/sys/comm_file_service.py",
+        "role": "企业级对象存储：高可用归档合同 PDF、手写签名图、发票原件与验收拍照凭据。",
+        "entrypoints": [
+          "upload_stream()",
+          "generate_presigned_url()",
+          "verify_hash_integrity()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-doc-pipeline",
+          "srv-signature-session"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "ext-ocr",
+        "name": "VAT Invoice OCR / Golden Tax",
+        "system": "external",
+        "sourcePath": "sydo_oa_finance/app/utils/ocr_util.py",
+        "role": "金税增值税发票查验与 OCR：发票代码、发票号码、开票金额与纳税人识别号自动验真。",
+        "entrypoints": [
+          "parse_vat_invoice()",
+          "verify_tax_authority()",
+          "extract_line_items()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [
+          "srv-purchase-invoice"
+        ],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "db-base",
+        "name": "MySQL `base` 财务主库",
+        "system": "database",
+        "sourcePath": "sydo_oa_finance/app/db/mysql.py",
+        "role": "财务中台持久层：存储 PR、PO、合同、验收、发票、付款、签名会话等 40+ 核心业务表。",
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"base\"]",
+          "atomic_transaction()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "db-pm",
+        "name": "MySQL `pm` 项目独立库",
+        "system": "database",
+        "sourcePath": "sydo_oa_finance/app/db/mysql.py",
+        "role": "工程项目管理独立库：全只读查询 projects、预算科目与项目编码，与财务库物理解耦。",
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"pm\"]",
+          "select_projects_readonly()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "db-manpower",
+        "name": "MySQL `manpower` 人力库",
+        "system": "database",
+        "sourcePath": "sydo_oa_finance/app/db/mysql.py",
+        "role": "人力资源与组织架构库：存储部门树、岗位职责、直属主管与工号鉴权信息。",
+        "entrypoints": [
+          "TORTOISE_ORM[\"connections\"][\"manpower\"]",
+          "query_employee_hierarchy()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [],
+        "existsInCommit": true,
+        "isModified": false
+      },
+      {
+        "id": "db-redis",
+        "name": "Redis 7.0 分布式缓存与锁",
+        "system": "database",
+        "sourcePath": "sydo_oa_finance/app/core/events.py",
+        "role": "高速缓存与防重发：签名二维码 10 分钟 TTL 倒计时、跨节点分布式锁、Token 鉴权缓存。",
+        "entrypoints": [
+          "redis_client.setex()",
+          "acquire_distributed_lock()",
+          "get_session_cache()"
+        ],
+        "verification": "static_ast",
+        "dependencies": [],
+        "existsInCommit": true,
+        "isModified": false
+      }
+    ],
+    "callChains": [
+      {
+        "id": "chain-procurement-lifecycle",
+        "name": "采购执行全周期闭环业务流",
+        "description": "PR申请 -> 询比价采购计划 -> 订单PO -> 采购合同 -> 验收单 -> 发票三单匹配 -> 付款三层申请",
+        "badge": "业务全闭环",
+        "sequenceKey": "flow-procurement-lifecycle",
+        "involvedModules": [
+          "web-purchase-request",
+          "srv-purchase-pr",
+          "srv-purchase-plan",
+          "web-purchase-plan",
+          "srv-purchase-po",
+          "web-purchase-order",
+          "srv-purchase-contract",
+          "web-purchase-contract",
+          "srv-purchase-accept",
+          "web-purchase-acceptance",
+          "srv-purchase-invoice",
+          "srv-purchase-payment",
+          "web-purchase-payment",
+          "db-base"
+        ]
+      },
+      {
+        "id": "chain-scan-to-sign",
+        "name": "移动端扫码手写签名与 WPS 正文回写状态机",
+        "description": "PC端生成二维码会话 -> 手机微信扫码 -> 触控手写签名 -> 验签防重放 -> WPS书签正文回写 -> PDF归档",
+        "badge": "高难工程亮点",
+        "sequenceKey": "flow-scan-to-sign",
+        "involvedModules": [
+          "web-purchase-contract",
+          "srv-signature-session",
+          "ext-mobile-sign",
+          "srv-doc-pipeline",
+          "ext-wps",
+          "ext-cos",
+          "db-redis",
+          "db-base"
+        ]
+      },
+      {
+        "id": "chain-budget-guard",
+        "name": "跨库预算校验与双轨拦截机制",
+        "description": "PR填报穿透只读 PM 独立库 projects 表 -> 额度比对 -> 硬拦截(金额超标) vs 隐式放行(未建档项目标记 unknown)",
+        "badge": "架构隔离亮点",
+        "sequenceKey": "flow-budget-dual-track",
+        "involvedModules": [
+          "web-purchase-request",
+          "srv-expense-facade",
+          "srv-purchase-pr",
+          "db-pm",
+          "db-base"
+        ]
+      },
+      {
+        "id": "chain-doc-pipeline",
+        "name": "合同正文文档生成、条款装配与印章合成管线",
+        "description": "PO 数据抽取 -> 条款明细装载 -> 读取 Word 模板 -> WPS API 书签注入替换 -> 电子印章与手写签名合成 -> 导出 PDF",
+        "badge": "文档管线",
+        "sequenceKey": "flow-doc-pipeline",
+        "involvedModules": [
+          "srv-purchase-contract",
+          "srv-doc-pipeline",
+          "ext-wps",
+          "ext-cos",
+          "db-base"
+        ]
+      },
+      {
+        "id": "chain-execution-ledger",
+        "name": "采购执行宽表 22 维核心字段跨表聚合流",
+        "description": "以 PR 明细行为基线粒度 -> 跨 6 表 LEFT JOIN 汇总 -> 抹平采购方式 3 套枚举漂移与付款比例反推 -> 导出台账",
+        "badge": "数据出口",
+        "sequenceKey": "flow-execution-ledger",
+        "involvedModules": [
+          "srv-execution-ledger",
+          "srv-purchase-pr",
+          "srv-purchase-po",
+          "srv-purchase-contract",
+          "srv-purchase-accept",
+          "srv-purchase-invoice",
+          "srv-purchase-payment",
+          "db-base"
+        ]
+      }
+    ]
+  }
+}

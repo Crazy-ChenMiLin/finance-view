@@ -1,0 +1,20 @@
+{
+  "baseSha": "dd787fa88aafe8579855637029ee2c1fec68e327",
+  "baseShortSha": "dd787fa",
+  "targetSha": "a5f9d854f137eeb384e8bf9b25549c5519988215",
+  "targetShortSha": "a5f9d85",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "src/views/finance/receipt-ledger/index.vue",
+    "src/views/finance/receipt-plan/index.vue"
+  ]
+}

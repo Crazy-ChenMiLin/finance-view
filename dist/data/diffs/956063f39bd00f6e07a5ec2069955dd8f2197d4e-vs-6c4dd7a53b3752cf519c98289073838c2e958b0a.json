@@ -1,0 +1,19 @@
+{
+  "baseSha": "956063f39bd00f6e07a5ec2069955dd8f2197d4e",
+  "baseShortSha": "956063f",
+  "targetSha": "6c4dd7a53b3752cf519c98289073838c2e958b0a",
+  "targetShortSha": "6c4dd7a",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "app/api/service/purchase_order_service.py"
+  ]
+}
