@@ -1,0 +1,20 @@
+{
+  "baseSha": "c887dae8fe702f259012d7958d194d0e0acb22a5",
+  "baseShortSha": "c887dae",
+  "targetSha": "d02a1ce97f0506a704647112f754f9122ad587b0",
+  "targetShortSha": "d02a1ce",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "src/views/authority/outsourcing/components/ProjectSubjectCell.vue",
+    "src/views/document/shared/project.ts"
+  ]
+}

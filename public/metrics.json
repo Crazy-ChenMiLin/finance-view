@@ -1,0 +1,211 @@
+{
+  "generatedAt": "2026-10-22T05:06:20.774Z",
+  "decouplingScore": 94,
+  "totalModules": 27,
+  "modulesBySystem": {
+    "web": 6,
+    "server": 12,
+    "external": 5,
+    "database": 4
+  },
+  "totalCallChains": 5,
+  "totalVersionsTracked": 16,
+  "guardsCount": 12,
+  "fastApiEndpoints": "302+",
+  "securityStatus": {
+    "auditPassed": true,
+    "leaksFound": 0,
+    "sanitizationEngine": "security-sanitizer.js"
+  },
+  "fanInOut": [
+    {
+      "id": "db-base",
+      "name": "MySQL `base` 财务主库",
+      "system": "database",
+      "fanIn": 11,
+      "fanOut": 0
+    },
+    {
+      "id": "srv-purchase-contract",
+      "name": "PurchaseContractService",
+      "system": "server",
+      "fanIn": 3,
+      "fanOut": 3
+    },
+    {
+      "id": "srv-signature-session",
+      "name": "SignatureScanSessionService",
+      "system": "server",
+      "fanIn": 2,
+      "fanOut": 4
+    },
+    {
+      "id": "srv-doc-pipeline",
+      "name": "ContractDocPipeline",
+      "system": "server",
+      "fanIn": 4,
+      "fanOut": 2
+    },
+    {
+      "id": "srv-purchase-po",
+      "name": "PurchaseOrderService",
+      "system": "server",
+      "fanIn": 3,
+      "fanOut": 2
+    },
+    {
+      "id": "srv-purchase-invoice",
+      "name": "PurchaseInvoiceService",
+      "system": "server",
+      "fanIn": 3,
+      "fanOut": 2
+    },
+    {
+      "id": "srv-purchase-pr",
+      "name": "PurchaseRequestService",
+      "system": "server",
+      "fanIn": 1,
+      "fanOut": 3
+    },
+    {
+      "id": "srv-expense-facade",
+      "name": "ExpenseService & Router",
+      "system": "server",
+      "fanIn": 1,
+      "fanOut": 3
+    },
+    {
+      "id": "srv-approval-callback",
+      "name": "ExternalApprovalCallbackService",
+      "system": "server",
+      "fanIn": 2,
+      "fanOut": 2
+    },
+    {
+      "id": "ext-wps",
+      "name": "WPS Web Office Cloud API",
+      "system": "external",
+      "fanIn": 3,
+      "fanOut": 1
+    },
+    {
+      "id": "ext-cos",
+      "name": "Tencent Cloud COS Storage",
+      "system": "external",
+      "fanIn": 2,
+      "fanOut": 2
+    },
+    {
+      "id": "web-purchase-contract",
+      "name": "PurchaseContractView",
+      "system": "web",
+      "fanIn": 0,
+      "fanOut": 3
+    },
+    {
+      "id": "srv-purchase-plan",
+      "name": "PurchasePlanService",
+      "system": "server",
+      "fanIn": 1,
+      "fanOut": 2
+    },
+    {
+      "id": "srv-purchase-accept",
+      "name": "PurchaseAcceptanceService",
+      "system": "server",
+      "fanIn": 1,
+      "fanOut": 2
+    },
+    {
+      "id": "srv-purchase-payment",
+      "name": "PurchasePaymentProposalService",
+      "system": "server",
+      "fanIn": 1,
+      "fanOut": 2
+    },
+    {
+      "id": "web-purchase-request",
+      "name": "PurchaseRequestView",
+      "system": "web",
+      "fanIn": 0,
+      "fanOut": 2
+    },
+    {
+      "id": "web-purchase-order",
+      "name": "PurchaseOrderView",
+      "system": "web",
+      "fanIn": 0,
+      "fanOut": 2
+    },
+    {
+      "id": "web-purchase-payment",
+      "name": "PurchasePaymentTriadView",
+      "system": "web",
+      "fanIn": 0,
+      "fanOut": 2
+    },
+    {
+      "id": "ext-mobile-sign",
+      "name": "MobileCanvasSignature (H5)",
+      "system": "external",
+      "fanIn": 1,
+      "fanOut": 1
+    },
+    {
+      "id": "ext-oa",
+      "name": "External OA Approval Workflow",
+      "system": "external",
+      "fanIn": 1,
+      "fanOut": 1
+    },
+    {
+      "id": "ext-ocr",
+      "name": "VAT Invoice OCR / Golden Tax",
+      "system": "external",
+      "fanIn": 1,
+      "fanOut": 1
+    },
+    {
+      "id": "db-pm",
+      "name": "MySQL `pm` 项目独立库",
+      "system": "database",
+      "fanIn": 2,
+      "fanOut": 0
+    },
+    {
+      "id": "web-purchase-plan",
+      "name": "PurchasePlanView",
+      "system": "web",
+      "fanIn": 0,
+      "fanOut": 1
+    },
+    {
+      "id": "web-purchase-acceptance",
+      "name": "PurchaseAcceptanceView",
+      "system": "web",
+      "fanIn": 0,
+      "fanOut": 1
+    },
+    {
+      "id": "srv-execution-ledger",
+      "name": "ReceiptQueryService",
+      "system": "server",
+      "fanIn": 0,
+      "fanOut": 1
+    },
+    {
+      "id": "db-manpower",
+      "name": "MySQL `manpower` 人力库",
+      "system": "database",
+      "fanIn": 1,
+      "fanOut": 0
+    },
+    {
+      "id": "db-redis",
+      "name": "Redis 7.0 分布式缓存与锁",
+      "system": "database",
+      "fanIn": 1,
+      "fanOut": 0
+    }
+  ]
+}

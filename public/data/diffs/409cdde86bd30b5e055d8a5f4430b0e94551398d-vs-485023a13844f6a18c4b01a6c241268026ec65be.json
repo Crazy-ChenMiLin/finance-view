@@ -1,0 +1,58 @@
+{
+  "baseSha": "409cdde86bd30b5e055d8a5f4430b0e94551398d",
+  "baseShortSha": "409cdde",
+  "targetSha": "485023a13844f6a18c4b01a6c241268026ec65be",
+  "targetShortSha": "485023a",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 1,
+    "totalAffected": 1
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [
+    {
+      "id": "web-purchase-acceptance",
+      "name": "PurchaseAcceptanceView",
+      "system": "web",
+      "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-acceptance/index.vue",
+      "role": "采购验收台账：支持分批到货多次验收、固定资产转固标记、验收报告签署。",
+      "depChanged": false,
+      "entryChanged": false,
+      "wasModifiedInCommit": true,
+      "before": {
+        "dependencies": [
+          "srv-purchase-accept"
+        ],
+        "entrypoints": [
+          "createAcceptance()",
+          "verifyOrderBalance()",
+          "markFixedAsset()"
+        ]
+      },
+      "after": {
+        "dependencies": [
+          "srv-purchase-accept"
+        ],
+        "entrypoints": [
+          "createAcceptance()",
+          "verifyOrderBalance()",
+          "markFixedAsset()"
+        ]
+      }
+    }
+  ],
+  "affectedModuleIds": [
+    "web-purchase-acceptance"
+  ],
+  "changedFiles": [
+    "src/views/authority/outsourcing/purchase-acceptance/index.vue",
+    "src/views/authority/outsourcing/purchase-payment-plan/index.vue",
+    "src/views/authority/outsourcing/purchase-payment-proposal/index.vue",
+    "src/views/authority/outsourcing/purchase-payment-proposal/page.vue",
+    "src/views/authority/outsourcing/purchase-plan/GeneratePoDialog.vue",
+    "src/views/authority/outsourcing/purchase-plan/index.vue",
+    "src/views/authority/outsourcing/purchase-reports/index.vue"
+  ]
+}

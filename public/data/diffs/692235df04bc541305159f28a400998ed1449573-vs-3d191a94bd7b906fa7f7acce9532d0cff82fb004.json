@@ -1,0 +1,244 @@
+{
+  "baseSha": "692235df04bc541305159f28a400998ed1449573",
+  "baseShortSha": "692235d",
+  "targetSha": "3d191a94bd7b906fa7f7acce9532d0cff82fb004",
+  "targetShortSha": "3d191a9",
+  "summary": {
+    "addedCount": 2,
+    "removedCount": 9,
+    "modifiedCount": 0,
+    "totalAffected": 11
+  },
+  "addedModules": [
+    {
+      "id": "web-purchase-contract",
+      "name": "PurchaseContractView",
+      "system": "web",
+      "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-contract/index.vue",
+      "role": "采购合同工作台：关联合同编号、查看正文在线预览、发起用印审批与免签判定。",
+      "entrypoints": [
+        "previewContractDoc()",
+        "submitApproval()",
+        "linkMobileSignature()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "srv-purchase-contract",
+        "srv-doc-pipeline",
+        "ext-wps"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "web-purchase-payment",
+      "name": "PurchasePaymentTriadView",
+      "system": "web",
+      "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-payment/index.vue",
+      "role": "付款三层中枢：付款申请(Request) -> 资金提报(Proposal) -> 月度计划(Plan) 穿透流转。",
+      "entrypoints": [
+        "submitProposal()",
+        "generateMonthlyPlan()",
+        "auditPaymentBalance()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "srv-purchase-payment",
+        "srv-purchase-invoice"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    }
+  ],
+  "removedModules": [
+    {
+      "id": "srv-purchase-pr",
+      "name": "PurchaseRequestService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_request_service.py",
+      "role": "采购申请核心逻辑：计算预算限额、多级审批路由计算、审批通过后幂等生成采购计划。",
+      "entrypoints": [
+        "create_pr()",
+        "ensure_plan_from_approved_pr()",
+        "_build_budget_check_from_lines()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "db-pm",
+        "srv-approval-callback"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-purchase-plan",
+      "name": "PurchasePlanService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_plan_service.py",
+      "role": "采购计划中枢：管理供应商询比价、审批通过后自动触发 _create_po_from_plan 并分摊分币差。",
+      "entrypoints": [
+        "create_plan()",
+        "_create_po_from_plan()",
+        "calculate_cost_allocation()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "srv-purchase-po"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-purchase-po",
+      "name": "PurchaseOrderService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_order_service.py",
+      "role": "采购订单服务：校验试用供应商年度 20 万限额、历史均价 10% 偏离预警与订单状态机维护。",
+      "entrypoints": [
+        "create_po()",
+        "validate_supplier_qualification()",
+        "close_purchase_order()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "srv-purchase-contract"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-purchase-contract",
+      "name": "PurchaseContractService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_contract_service.py",
+      "role": "采购合同服务：PO 衍生合同生成、金额阶梯审批路由、反查 project_account 项目名称。",
+      "entrypoints": [
+        "create_contract_from_po()",
+        "_resolve_project_from_pr()",
+        "handle_approval_pass()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "srv-doc-pipeline",
+        "ext-wps"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-purchase-accept",
+      "name": "PurchaseAcceptanceService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_acceptance_service.py",
+      "role": "验收单防线：严苛执行四道门禁校验(PR通过/计划通过/PO生效/订单未关闭)，累计金额拦截。",
+      "entrypoints": [
+        "create_acceptance()",
+        "validate_order_gate()",
+        "check_fixed_asset_flag()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "srv-purchase-po"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-execution-ledger",
+      "name": "ReceiptQueryService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/receipt_query_service.py",
+      "role": "22维采购执行宽表聚合服务：以 PR 明细行为基线粒度，跨 6 表 LEFT JOIN 汇总生成台账。",
+      "entrypoints": [
+        "build_plan_result()",
+        "export_execution_ledger()",
+        "_map_procurement_method()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-doc-pipeline",
+      "name": "ContractDocPipeline",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/utils/contract_doc_pipeline.py",
+      "role": "WPS 正文回写管线：抽取结构化条款与明细，填充 Word 模板书签，合成印章并转换为只读 PDF。",
+      "entrypoints": [
+        "render_contract_docx()",
+        "inject_wps_bookmarks()",
+        "convert_to_pdf_archive()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "ext-wps",
+        "ext-cos"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-purchase-invoice",
+      "name": "PurchaseInvoiceService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_invoice_service.py",
+      "role": "发票台账与防重校验：三单匹配(PO/合同/验收单)、发票代码+号码唯一性硬拦截与税率分摊。",
+      "entrypoints": [
+        "register_invoice()",
+        "check_invoice_duplicate()",
+        "match_triad_receipts()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "ext-ocr"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    },
+    {
+      "id": "srv-purchase-payment",
+      "name": "PurchasePaymentProposalService",
+      "system": "server",
+      "sourcePath": "sydo_oa_finance/app/api/service/outsourcing/purchase_payment_proposal_service.py",
+      "role": "资金计划与付款提报：必须有审批通过合同与发票校验，非预付款校验验收单，累计不超 PO/发票。",
+      "entrypoints": [
+        "submit_payment_proposal()",
+        "audit_accumulated_payments()",
+        "compile_monthly_plan()"
+      ],
+      "verification": "static_ast",
+      "dependencies": [
+        "db-base",
+        "srv-purchase-invoice"
+      ],
+      "existsInCommit": true,
+      "isModified": false
+    }
+  ],
+  "modifiedModules": [],
+  "affectedModuleIds": [
+    "web-purchase-contract",
+    "web-purchase-payment",
+    "srv-purchase-pr",
+    "srv-purchase-plan",
+    "srv-purchase-po",
+    "srv-purchase-contract",
+    "srv-purchase-accept",
+    "srv-execution-ledger",
+    "srv-doc-pipeline",
+    "srv-purchase-invoice",
+    "srv-purchase-payment"
+  ],
+  "changedFiles": [
+    "app/api/service/purchase_settlement_service.py"
+  ]
+}

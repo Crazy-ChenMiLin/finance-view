@@ -1,0 +1,55 @@
+{
+  "baseSha": "34505aa02e4aba81a203a30face4b53f744d57ec",
+  "baseShortSha": "34505aa",
+  "targetSha": "692235df04bc541305159f28a400998ed1449573",
+  "targetShortSha": "692235d",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 1,
+    "totalAffected": 1
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [
+    {
+      "id": "web-purchase-order",
+      "name": "PurchaseOrderView",
+      "system": "web",
+      "sourcePath": "finance-frontend/src/views/authority/outsourcing/purchase-order/index.vue",
+      "role": "采购订单台账：多维检索订单编号、供应商、含税总额、合同状态与交货期限。",
+      "depChanged": false,
+      "entryChanged": false,
+      "wasModifiedInCommit": true,
+      "before": {
+        "dependencies": [
+          "srv-purchase-po",
+          "srv-purchase-contract"
+        ],
+        "entrypoints": [
+          "fetchOrderList()",
+          "viewOrderDetail()",
+          "triggerContractCreation()"
+        ]
+      },
+      "after": {
+        "dependencies": [
+          "srv-purchase-po",
+          "srv-purchase-contract"
+        ],
+        "entrypoints": [
+          "fetchOrderList()",
+          "viewOrderDetail()",
+          "triggerContractCreation()"
+        ]
+      }
+    }
+  ],
+  "affectedModuleIds": [
+    "web-purchase-order"
+  ],
+  "changedFiles": [
+    "src/views/authority/outsourcing/purchase-order/index.vue",
+    "src/views/authority/outsourcing/purchase-order/page.vue"
+  ]
+}

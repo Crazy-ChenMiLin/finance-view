@@ -1,6 +1,6 @@
 /**
  * Living Architecture Interactive Application · Finance OA
- * Visual Explainer Engine: Version switching, Diff mode, Call-chain highlighting, Node inspector
+ * Visual Explainer Engine: Pan & Zoom, Bidirectional Call Highlighting, Metrics Radar, Version Time Travel & Diff
  */
 
 // Stable 2D layout coordinates for consistent, non-jumping topology
@@ -136,7 +136,7 @@ const MERMAID_DIAGRAMS = {
 
     rect rgb(28, 25, 45)
     Note over Invoice,Payment: 【第五阶段：付款三层递进流转】
-    Purchaser->>Payment: 提报付款申请 (非预付款校验验收单与发票)
+    Purchaser->>Payment: 提报付款申请 (出款发票可选订单严格按审批通过验收单)
     Payment->>Payment: 汇总编制月度资金付款计划 (防止超 PO/超发票)
     Payment->>DB: 财务出纳凭单支付，回写各单据累计支付进度
     Payment-->>Purchaser: 采购执行闭环完成！
@@ -249,45 +249,38 @@ const MERMAID_DIAGRAMS = {
     PMDB-->>ExpenseSrv: 返回过滤仅在进行中的项目列表
     ExpenseSrv-->>Web: 渲染项目下拉列表供用户选择
 
-    User->>Web: 录入明细含税总金额，点击【发起审批】
-    Web->>PRSrv: POST /purchase/request/create (带明细与预估金额)
-    PRSrv->>PRSrv: _build_budget_check_from_lines 提取各项目预算项
-
-    alt 项目编号在 PM 库中存在
-        PRSrv->>PMDB: 查询该项目已用预算与总可用预算限额
-        PMDB-->>PRSrv: 返回预算结余数值
-        alt 本次申请金额 > 预算结余
-            PRSrv->>PRSrv: 触发硬拦截：status = "warn"
-            PRSrv-->>Web: 拦截阻断！抛出【项目预算余额不足，禁止提报】
-        else 本次申请金额 <= 预算结余
-            PRSrv->>BaseDB: 扣减并记录预算占用日志 (status = "pass")
-            PRSrv->>BaseDB: 插入 PR 记录，进入审批工作流
-        end
-    else 项目编号在 PM 库中未建档 (历史遗留或新增项目)
-        PRSrv->>PRSrv: 触发隐式放行：status = "unknown"
-        Note over PRSrv,BaseDB: 关键工程取舍：不阻断紧急业务提报
-        PRSrv->>BaseDB: 插入 PR 记录，预算检查标记为 unknown 供人工复核
-        PRSrv-->>Web: 提报成功，提示【预算科目待财务复核确认】
+    User->>Web: 录入物料清单与含税单价，点击【提交申请】
+    Web->>PRSrv: POST /outsourcing/purchase-request/create
+    PRSrv->>PMDB: SELECT available_amount FROM project_budget WHERE project_id = ?
+    alt 预算超支
+        PRSrv-->>Web: 抛出 HTTPException(status=warn, "项目预算不足，当前可用: ¥...")
+        Web->>User: 弹窗硬拦截阻断，禁止流入审批流
+    else 预算充足
+        PRSrv->>BaseDB: INSERT INTO purchase_request (status=submitted)
+        PRSrv-->>Web: 校验通过，单据已成功推送至审批流
+    else 外部或紧急未建档项目 (项目库查询为空)
+        PRSrv->>BaseDB: INSERT INTO purchase_request (status=unknown, budget_status=bypassed)
+        PRSrv-->>Web: 隐式放行并提示【未建档项目，进入特殊审批流】
     end`
   },
 
   'flow-doc-pipeline': {
-    title: '📄 采购合同文档管线、条款装配与印章合成时序图',
+    title: '📄 合同正文文档生成、条款装配与印章合成管线',
     badge: '文档管线',
-    desc: '从采购订单抽取数据条款，加载标准 Word 模板，通过 WPS WebOffice API 执行书签变量替换与印章合图，输出只读 PDF。',
+    desc: '从 PO 数据镜像抽取明细条款，注入金山 WPS Word 书签变量，合成双方电子印章并转码为只读 PDF 归档。',
     code: `%%{init: {
       "theme": "dark",
       "themeVariables": {
         "darkMode": true,
         "background": "#070b14",
-        "primaryColor": "#38bdf8",
+        "primaryColor": "#818cf8",
         "primaryTextColor": "#f8fafc",
-        "primaryBorderColor": "#38bdf8",
-        "lineColor": "#38bdf8",
+        "primaryBorderColor": "#a5b4fc",
+        "lineColor": "#a5b4fc",
         "secondaryColor": "#1e293b",
         "actorTextColor": "#ffffff",
         "actorBkg": "#0f172a",
-        "actorBorder": "#38bdf8"
+        "actorBorder": "#818cf8"
       },
       "sequence": {
         "actorFontSize": 18,
@@ -298,51 +291,44 @@ const MERMAID_DIAGRAMS = {
     }}%%
     sequenceDiagram
     autonumber
-    participant PO as 采购订单 (PO)
+    participant PO as 采购订单 (PO Service)
     participant ContractSrv as 合同服务 (ContractService)
-    participant Pipeline as 文档管线引擎 (DocPipeline)
-    participant WPS as WPS 开放平台 (Web Office)
-    participant COS as 腾讯云 COS 对象存储
-    participant DB as Base 数据库
+    participant Pipeline as 文档管线 (ContractDocPipeline)
+    participant WPS as WPS WebOffice API
+    participant COS as 腾讯云 COS
+    participant BaseDB as Base 财务主库
 
-    PO->>ContractSrv: 订单完成，触发【生成采购合同】
-    ContractSrv->>DB: 查询供应商名称、统一社会信用代码、法人与银行账户
-    ContractSrv->>DB: 查询物料规格型号、含税单价、交货期限与质保条款
-    ContractSrv->>Pipeline: render_contract_docx(context_data)
-    
-    Pipeline->>Pipeline: 加载企业标准采购合同模版 (.docx)
-    Pipeline->>WPS: 建立文档操作会话，获取 SessionToken
-    Pipeline->>WPS: 遍历替换文本书签 (甲方、乙方、金额大写、交货期)
-    Pipeline->>WPS: 动态追加物料采购清单表格行 (Table 变量展开)
-    
-    Pipeline->>Pipeline: 读取双方电子印章与手写签名 PNG
-    Pipeline->>WPS: 坐标锚定将印章贴图合成至尾页签章区
-    WPS->>Pipeline: 返回渲染合成后的 docx 字节流
-    
-    Pipeline->>WPS: convert_to_pdf_archive() 请求转为 PDF/A 格式
-    WPS-->>Pipeline: 转换成功，返回 PDF 数据流
-    Pipeline->>COS: 上传并获取永久存储 URL
-    Pipeline->>DB: 绑定 contract.contract_file_url 与 pdf_archive_url
-    ContractSrv-->>PO: 合同正文与归档 PDF 准备就绪，允许发起盖章审批`
+    PO->>ContractSrv: create_contract_from_po(po_id)
+    ContractSrv->>BaseDB: 抽取 PO 抬头、物料列表、含税金额与交期
+    ContractSrv->>Pipeline: build_document_context(terms, items)
+    Pipeline->>WPS: 加载标准化合同 Word 模板 (.docx)
+    Pipeline->>WPS: 批量替换书签变量 (bookmark_contract_no, bookmark_party_a, bookmark_amount)
+    Pipeline->>WPS: 动态追加多行物料清单表格 (Items Table Grid)
+    Pipeline->>WPS: 注入双方印章与移动签名手写 PNG 图片
+    Pipeline->>Pipeline: 调用底层排版引擎转换为 PDF/A-1a
+    Pipeline->>COS: 上传不可篡改只读 PDF 归档
+    COS-->>Pipeline: 返回永久对象存储 URL
+    Pipeline->>BaseDB: 更新 purchase_contract.pdf_archive_url
+    Pipeline-->>ContractSrv: 合同正文装配完成，随时供在线预览`
   },
 
   'flow-execution-ledger': {
     title: '📊 采购执行宽表 22 维核心字段跨表聚合流',
     badge: '数据出口',
-    desc: '以 PR 申请明细行为基线粒度，跨 6 表进行高效 LEFT JOIN，抹平 3 套采购方式枚举漂移并反推付款比例与开票状态。',
+    desc: '以 PR 明细行为基线不可拆分粒度，跨 6 表 LEFT JOIN 汇总，对齐采购方式 3 套枚举漂移，反推付款比例并流式导出。',
     code: `%%{init: {
       "theme": "dark",
       "themeVariables": {
         "darkMode": true,
         "background": "#070b14",
-        "primaryColor": "#c084fc",
+        "primaryColor": "#38bdf8",
         "primaryTextColor": "#f8fafc",
-        "primaryBorderColor": "#c084fc",
-        "lineColor": "#c084fc",
+        "primaryBorderColor": "#7dd3fc",
+        "lineColor": "#7dd3fc",
         "secondaryColor": "#1e293b",
         "actorTextColor": "#ffffff",
         "actorBkg": "#0f172a",
-        "actorBorder": "#c084fc"
+        "actorBorder": "#38bdf8"
       },
       "sequence": {
         "actorFontSize": 18,
@@ -382,281 +368,7 @@ const MERMAID_DIAGRAMS = {
   }
 };
 
-// Global Application State
-let appState = {
-  activeTab: 'topology',
-  selectedSystem: 'all',
-  activeCallChain: 'chain-procurement-lifecycle',
-  searchQuery: '',
-  selectedNode: null,
-  currentVersion: null,
-  versions: [],
-  isDiffMode: false,
-  baseVersion: null,
-  targetVersion: null,
-  currentDiff: null
-};
-
-// Initialize Application
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[FinanceLivingArch] Initializing application...');
-  initTabs();
-  initChainPicker();
-  initSearch();
-  initSystemFilter();
-  renderTopologySVG();
-  renderMermaidDiagram(appState.activeCallChain);
-  await loadVersionHistory();
-  renderModulesGrid();
-});
-
-// Tab Switcher
-function initTabs() {
-  const tabs = document.querySelectorAll('.tab-btn');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const tabTarget = tab.getAttribute('data-tab');
-      appState.activeTab = tabTarget;
-
-      document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.remove('active');
-      });
-      const activePanel = document.getElementById(`panel-${tabTarget}`);
-      if (activePanel) activePanel.classList.add('active');
-
-      if (tabTarget === 'callchains') {
-        renderMermaidDiagram(appState.activeCallChain);
-      }
-    });
-  });
-}
-
-// Call Chain Picker
-function initChainPicker() {
-  const container = document.getElementById('chain-picker-bar');
-  if (!container) return;
-
-  container.innerHTML = '';
-  Object.keys(MERMAID_DIAGRAMS).forEach(key => {
-    const d = MERMAID_DIAGRAMS[key];
-    const btn = document.createElement('button');
-    btn.className = `chain-btn ${appState.activeCallChain === key ? 'active' : ''}`;
-    btn.innerHTML = `<span>${d.title.split(' ')[0]}</span> ${d.title.split(' ')[1]}`;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.chain-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      appState.activeCallChain = key;
-      renderMermaidDiagram(key);
-      highlightTopologyCallChain(key);
-    });
-    container.appendChild(btn);
-  });
-}
-
-// Render Mermaid Diagram with dark mode
-function renderMermaidDiagram(chainKey) {
-  const diagram = MERMAID_DIAGRAMS[chainKey];
-  if (!diagram) return;
-
-  const titleEl = document.getElementById('mermaid-title');
-  const descEl = document.getElementById('mermaid-desc');
-  const targetEl = document.getElementById('mermaid-output');
-
-  if (titleEl) titleEl.innerText = diagram.title;
-  if (descEl) descEl.innerText = diagram.desc;
-
-  if (targetEl && window.mermaid) {
-    try {
-      window.mermaid.initialize({
-        startOnLoad: false,
-        theme: 'dark',
-        securityLevel: 'loose'
-      });
-
-      const uniqueId = `mermaid-graph-${Date.now()}`;
-      window.mermaid.render(uniqueId, diagram.code).then(({ svg }) => {
-        targetEl.innerHTML = svg;
-      }).catch(err => {
-        console.warn('Mermaid render error:', err);
-        targetEl.innerHTML = `<pre style="color:#ef4444; padding:20px;">Mermaid Rendering Error: ${err.message}</pre>`;
-      });
-    } catch (e) {
-      targetEl.innerHTML = `<pre style="color:#ef4444; padding:20px;">Diagram Error: ${e.message}</pre>`;
-    }
-  }
-}
-
-// Render SVG Topology
-function renderTopologySVG() {
-  const svg = document.getElementById('topology-svg');
-  if (!svg) return;
-
-  svg.setAttribute('viewBox', '0 0 1080 670');
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('style', 'max-width: 1080px; height: auto;');
-
-  let html = `
-    <defs>
-      <!-- Gradients for Containers -->
-      <linearGradient id="grad-web" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#1e1b4b" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
-      </linearGradient>
-      <linearGradient id="grad-server" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#082f49" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
-      </linearGradient>
-      <linearGradient id="grad-external" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#064e3b" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
-      </linearGradient>
-      <linearGradient id="grad-database" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#451a03" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
-      </linearGradient>
-
-      <!-- Arrow Markers -->
-      <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
-      </marker>
-      <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
-      </marker>
-      <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
-      </marker>
-    </defs>
-  `;
-
-  // Draw Containers
-  SYSTEM_CONTAINERS.forEach(c => {
-    html += `
-      <g class="svg-container-group" id="sys-container-${c.id}">
-        <rect class="svg-sys-container" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" fill="${c.fill}" stroke="${c.border}" />
-        <text class="svg-sys-label" x="${c.x + 16}" y="${c.y + 24}">${c.title}</text>
-      </g>
-    `;
-  });
-
-  // Connecting Links
-  const links = [
-    { from: 'web-purchase-request', to: 'srv-purchase-pr', color: '#818cf8' },
-    { from: 'srv-purchase-pr', to: 'db-pm', color: '#f59e0b' },
-    { from: 'srv-purchase-pr', to: 'db-base', color: '#f59e0b' },
-    { from: 'srv-purchase-pr', to: 'srv-purchase-plan', color: '#38bdf8' },
-    { from: 'srv-purchase-plan', to: 'srv-purchase-po', color: '#38bdf8' },
-    { from: 'srv-purchase-po', to: 'srv-purchase-contract', color: '#38bdf8' },
-    { from: 'srv-purchase-contract', to: 'ext-wps', color: '#10b981' },
-    { from: 'srv-purchase-contract', to: 'srv-doc-pipeline', color: '#38bdf8' },
-    { from: 'srv-doc-pipeline', to: 'ext-cos', color: '#10b981' },
-    { from: 'srv-signature-session', to: 'ext-mobile-sign', color: '#10b981' },
-    { from: 'srv-signature-session', to: 'db-redis', color: '#f59e0b' },
-    { from: 'srv-purchase-accept', to: 'db-base', color: '#f59e0b' },
-    { from: 'srv-purchase-invoice', to: 'ext-ocr', color: '#10b981' },
-    { from: 'srv-purchase-payment', to: 'db-base', color: '#f59e0b' },
-    { from: 'srv-execution-ledger', to: 'db-base', color: '#f59e0b' }
-  ];
-
-  links.forEach((l, idx) => {
-    const fNode = NODE_LAYOUT[l.from];
-    const tNode = NODE_LAYOUT[l.to];
-    if (fNode && tNode) {
-      const x1 = fNode.x + fNode.w / 2;
-      const y1 = fNode.y + fNode.h / 2;
-      const x2 = tNode.x + tNode.w / 2;
-      const y2 = tNode.y + tNode.h / 2;
-      const cx = (x1 + x2) / 2;
-      const cy = (y1 + y2) / 2;
-      html += `
-        <path id="link-${idx}" class="svg-link" data-from="${l.from}" data-to="${l.to}"
-          d="M ${x1} ${y1} Q ${cx} ${cy - 10} ${x2} ${y2}"
-          stroke="${l.color}" marker-end="url(#arrow-cyan)" />
-      `;
-    }
-  });
-
-  // Draw Nodes
-  Object.keys(NODE_LAYOUT).forEach(nodeId => {
-    const n = NODE_LAYOUT[nodeId];
-    let borderColor = '#38bdf8';
-    let bgColor = '#111a2e';
-
-    if (n.sys === 'web') { borderColor = '#818cf8'; bgColor = '#131b36'; }
-    else if (n.sys === 'server') { borderColor = '#38bdf8'; bgColor = '#0f223d'; }
-    else if (n.sys === 'external') { borderColor = '#34d399'; bgColor = '#0f2c25'; }
-    else if (n.sys === 'database') { borderColor = '#fbbf24'; bgColor = '#291c08'; }
-
-    html += `
-      <g class="svg-node" id="node-${nodeId}" data-id="${nodeId}" data-sys="${n.sys}" onclick="window.inspectNode('${nodeId}')">
-        <rect class="svg-node-bg" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}"
-          fill="${bgColor}" stroke="${borderColor}" />
-        <text class="svg-node-title" x="${n.x + 12}" y="${n.y + 24}">${n.name}</text>
-        <text class="svg-node-sub" x="${n.x + 12}" y="${n.y + 42}">${n.sub}</text>
-      </g>
-    `;
-  });
-
-  svg.innerHTML = html;
-}
-
-// Highlight Call Chain on Topology
-function highlightTopologyCallChain(chainKey) {
-  const chainMeta = {
-    'flow-procurement-lifecycle': [
-      'web-purchase-request', 'srv-purchase-pr', 'srv-purchase-plan', 'web-purchase-plan',
-      'srv-purchase-po', 'web-purchase-order', 'srv-purchase-contract', 'web-purchase-contract',
-      'srv-purchase-accept', 'web-purchase-acceptance', 'srv-purchase-invoice', 'srv-purchase-payment',
-      'web-purchase-payment', 'db-base'
-    ],
-    'flow-scan-to-sign': [
-      'web-purchase-contract', 'srv-signature-session', 'ext-mobile-sign', 'srv-doc-pipeline',
-      'ext-wps', 'ext-cos', 'db-redis', 'db-base'
-    ],
-    'flow-budget-dual-track': [
-      'web-purchase-request', 'srv-expense-facade', 'srv-purchase-pr', 'db-pm', 'db-base'
-    ],
-    'flow-doc-pipeline': [
-      'srv-purchase-contract', 'srv-doc-pipeline', 'ext-wps', 'ext-cos', 'db-base'
-    ],
-    'flow-execution-ledger': [
-      'srv-execution-ledger', 'srv-purchase-pr', 'srv-purchase-po', 'srv-purchase-contract',
-      'srv-purchase-accept', 'srv-purchase-invoice', 'srv-purchase-payment', 'db-base'
-    ]
-  };
-
-  const activeNodes = chainMeta[chainKey] || [];
-  const allNodes = document.querySelectorAll('.svg-node');
-  const allLinks = document.querySelectorAll('.svg-link');
-
-  allNodes.forEach(node => {
-    const id = node.getAttribute('data-id');
-    if (activeNodes.length === 0 || activeNodes.includes(id)) {
-      node.classList.remove('dimmed');
-      if (activeNodes.includes(id)) {
-        node.classList.add('chain-highlight');
-      } else {
-        node.classList.remove('chain-highlight');
-      }
-    } else {
-      node.classList.add('dimmed');
-      node.classList.remove('chain-highlight');
-    }
-  });
-
-  allLinks.forEach(link => {
-    const from = link.getAttribute('data-from');
-    const to = link.getAttribute('data-to');
-    if (activeNodes.includes(from) && activeNodes.includes(to)) {
-      link.classList.add('active');
-    } else {
-      link.classList.remove('active');
-    }
-  });
-}
-
-// Module details catalog with exact source paths, entry points and invariant guards
+// Module Catalog with exact source paths, entry points and invariant guards
 const MODULE_CATALOG = {
   'web-purchase-request': {
     name: 'PurchaseRequestView',
@@ -665,25 +377,25 @@ const MODULE_CATALOG = {
     path: 'finance-frontend/src/views/authority/outsourcing/purchase-request/page.vue',
     entrypoints: ['handleSubmit()', 'handleBudgetCheck()', 'fetchProjectList()'],
     deps: ['srv-purchase-pr', 'srv-expense-facade'],
-    guard: '前端与 PM 独立库 projects 表联动，仅允许关联进行中项目。'
+    guard: '前端与 PM 独立库 projects 表联动，仅允许关联进行中项目；单头直显所属项目。'
   },
   'web-purchase-plan': {
     name: 'PurchasePlanView',
     sys: 'web',
-    role: '采购计划方案：录入各家供应商比价、综合打分评估并分摊生成 PO。',
+    role: '采购计划方案：录入各家供应商比价、综合打分评估、计划方案编辑并分摊生成 PO。',
     path: 'finance-frontend/src/views/authority/outsourcing/purchase-plan/page.vue',
-    entrypoints: ['handleQuoteComparison()', 'generatePOFromPlan()', 'exportPlanDetail()'],
+    entrypoints: ['handleQuoteComparison()', 'generatePOFromPlan()', 'editPlanDetail()', 'validatePlanItemCalculations()'],
     deps: ['srv-purchase-plan'],
-    guard: '保证方案总额在 PR 批复预算 ±10% 预警阈值范围内。'
+    guard: '保证方案总额在 PR 批复预算 ±10% 预警阈值范围内；分币尾差自动吸收。'
   },
   'web-purchase-order': {
     name: 'PurchaseOrderView',
     sys: 'web',
-    role: '采购订单台账：多维检索订单编号、供应商、含税总额、合同状态与交货期限。',
+    role: '采购订单台账：多维检索订单编号、供应商、含税总额；支持列表直传合同与发票附件，详情查看履约全貌。',
     path: 'finance-frontend/src/views/authority/outsourcing/purchase-order/index.vue',
-    entrypoints: ['fetchOrderList()', 'viewOrderDetail()', 'triggerContractCreation()'],
+    entrypoints: ['fetchOrderList()', 'viewOrderDetail()', 'uploadContractAttachment()', 'uploadInvoiceAttachment()', 'viewFulfillmentDetail()'],
     deps: ['srv-purchase-po', 'srv-purchase-contract'],
-    guard: '严密关联计划编号 plan_no（避免与项目编号混淆）。'
+    guard: '严密关联计划编号 plan_no；列表编号支持点击快捷复制并跳转履约详情。'
   },
   'web-purchase-contract': {
     name: 'PurchaseContractView',
@@ -701,7 +413,7 @@ const MODULE_CATALOG = {
     path: 'finance-frontend/src/views/authority/outsourcing/purchase-acceptance/index.vue',
     entrypoints: ['createAcceptance()', 'verifyOrderBalance()', 'markFixedAsset()'],
     deps: ['srv-purchase-accept'],
-    guard: '验收金额严格累计，禁止超出 PO 订单未关闭有效总额。'
+    guard: '验收金额严格累计，禁止超出 PO 订单有效总额；是否固定资产默认否。'
   },
   'web-purchase-payment': {
     name: 'PurchasePaymentTriadView',
@@ -710,14 +422,14 @@ const MODULE_CATALOG = {
     path: 'finance-frontend/src/views/authority/outsourcing/purchase-payment/index.vue',
     entrypoints: ['submitProposal()', 'generateMonthlyPlan()', 'auditPaymentBalance()'],
     deps: ['srv-purchase-payment', 'srv-purchase-invoice'],
-    guard: '必须有生效合同与发票校验，付款累计严禁超 PO/发票总额。'
+    guard: '出款发票可选订单挂接审批通过验收单；累计严禁超 PO/发票总额。'
   },
   'srv-purchase-pr': {
     name: 'PurchaseRequestService',
     sys: 'server',
-    role: '采购申请核心逻辑：计算预算限额、多级审批路由计算、审批通过后幂等生成采购计划。',
+    role: '采购申请核心逻辑：计算预算限额、绑定采购申请单所属项目名称、多级审批路由计算与计划幂等生成。',
     path: 'sydo_oa_finance/app/api/service/outsourcing/purchase_request_service.py:781',
-    entrypoints: ['create_pr()', 'ensure_plan_from_approved_pr()', '_build_budget_check_from_lines()'],
+    entrypoints: ['create_pr()', 'ensure_plan_from_approved_pr()', '_build_budget_check_from_lines()', 'resolve_pr_project_name()'],
     deps: ['db-base', 'db-pm', 'srv-approval-callback'],
     guard: 'status == "warn" 硬拦截阻断；status == "unknown" 隐式放行不阻断紧急业务。'
   },
@@ -751,11 +463,11 @@ const MODULE_CATALOG = {
   'srv-purchase-accept': {
     name: 'PurchaseAcceptanceService',
     sys: 'server',
-    role: '验收单防线：严苛执行四道门禁校验(PR通过/计划通过/PO生效/订单未关闭)，累计金额拦截。',
+    role: '验收单防线：执行四道门禁校验(PR/计划/PO/未关闭)；固定资产转固标记默认否；支持可验明细 soft 预览兼容。',
     path: 'sydo_oa_finance/app/api/service/outsourcing/purchase_acceptance_service.py:657',
-    entrypoints: ['create_acceptance()', 'validate_order_gate()', 'check_fixed_asset_flag()'],
+    entrypoints: ['create_acceptance()', 'validate_order_gate()', 'preview_soft_acceptance()', 'resolve_parent_project_name()'],
     deps: ['db-base', 'srv-purchase-po'],
-    guard: '四道门禁缺一不可；无项目编号不准发起审批。'
+    guard: '四道门禁缺一不可；无项目编号不准发起审批；固定资产默认否。'
   },
   'srv-execution-ledger': {
     name: 'ReceiptQueryService',
@@ -814,11 +526,11 @@ const MODULE_CATALOG = {
   'srv-purchase-payment': {
     name: 'PurchasePaymentProposalService',
     sys: 'server',
-    role: '资金计划与付款提报：必须有审批通过合同与发票校验，非预付款校验验收单，累计不超 PO/发票。',
+    role: '资金计划与付款提报：出款发票挂接审批通过验收单；非预付款必须三单齐备，累计支付金额硬拦截。',
     path: 'sydo_oa_finance/app/api/service/outsourcing/purchase_payment_proposal_service.py:536',
-    entrypoints: ['submit_payment_proposal()', 'audit_accumulated_payments()', 'compile_monthly_plan()'],
+    entrypoints: ['submit_payment_proposal()', 'audit_accumulated_payments()', 'compile_monthly_plan()', 'filter_settlement_orders_by_approved_acceptance()'],
     deps: ['db-base', 'srv-purchase-invoice'],
-    guard: '严格三级校验；月度计划按研究所/数元道分账隔离。'
+    guard: '严格三级校验；出款发票过滤已验收订单；月度计划分账隔离。'
   },
   'ext-mobile-sign': {
     name: 'MobileCanvasSignature (H5)',
@@ -903,12 +615,405 @@ const MODULE_CATALOG = {
   }
 };
 
-// Inspect Node Modal
+// Global Application State
+let appState = {
+  activeTab: 'topology',
+  selectedSystem: 'all',
+  activeCallChain: 'flow-procurement-lifecycle',
+  searchQuery: '',
+  selectedNode: null,
+  currentVersion: null,
+  versions: [],
+  isDiffMode: false,
+  // Pan & Zoom
+  zoomScale: 1.0,
+  panX: 0,
+  panY: 0,
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0
+};
+
+// Initialize Application
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[FinanceLivingArch] Initializing application...');
+  initTabs();
+  initChainPicker();
+  initSearch();
+  initSystemFilter();
+  renderTopologySVG();
+  initTopologyPanZoom();
+  renderMermaidDiagram(appState.activeCallChain);
+  await loadVersionHistory();
+  renderModulesGrid();
+});
+
+// Toast notification helper
+function showToast(message) {
+  const toast = document.getElementById('app-toast');
+  if (!toast) return;
+  toast.innerText = message;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2400);
+}
+
+// Tab Switcher
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const tabTarget = tab.getAttribute('data-tab');
+      appState.activeTab = tabTarget;
+
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      const activePanel = document.getElementById(`panel-${tabTarget}`);
+      if (activePanel) activePanel.classList.add('active');
+
+      if (tabTarget === 'callchains') {
+        renderMermaidDiagram(appState.activeCallChain);
+      }
+    });
+  });
+}
+
+// Call Chain Picker
+function initChainPicker() {
+  const container = document.getElementById('chain-picker-bar');
+  if (!container) return;
+
+  container.innerHTML = '';
+  Object.keys(MERMAID_DIAGRAMS).forEach(key => {
+    const d = MERMAID_DIAGRAMS[key];
+    const btn = document.createElement('button');
+    btn.className = `chain-btn ${appState.activeCallChain === key ? 'active' : ''}`;
+    btn.innerHTML = `<span>${d.title.split(' ')[0]}</span> ${d.title.split(' ')[1]}`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.chain-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appState.activeCallChain = key;
+      renderMermaidDiagram(key);
+      highlightTopologyCallChain(key);
+    });
+    container.appendChild(btn);
+  });
+}
+
+// Render Mermaid Diagram with dark mode
+function renderMermaidDiagram(chainKey) {
+  const diagram = MERMAID_DIAGRAMS[chainKey];
+  if (!diagram) return;
+
+  const titleEl = document.getElementById('mermaid-title');
+  const descEl = document.getElementById('mermaid-desc');
+  const targetEl = document.getElementById('mermaid-output');
+
+  if (titleEl) titleEl.innerText = diagram.title;
+  if (descEl) descEl.innerText = diagram.desc;
+
+  if (targetEl && window.mermaid) {
+    try {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        securityLevel: 'loose'
+      });
+
+      const uniqueId = `mermaid-graph-${Date.now()}`;
+      window.mermaid.render(uniqueId, diagram.code).then(({ svg }) => {
+        targetEl.innerHTML = svg;
+      }).catch(err => {
+        console.warn('Mermaid render error:', err);
+        targetEl.innerHTML = `<pre style="color:#ef4444; padding:20px;">Mermaid Rendering Error: ${err.message}</pre>`;
+      });
+    } catch (e) {
+      targetEl.innerHTML = `<pre style="color:#ef4444; padding:20px;">Diagram Error: ${e.message}</pre>`;
+    }
+  }
+}
+
+// Copy Mermaid Source Code
+window.copyMermaidCode = function() {
+  const diagram = MERMAID_DIAGRAMS[appState.activeCallChain];
+  if (!diagram) return;
+  navigator.clipboard.writeText(diagram.code).then(() => {
+    showToast('✅ Mermaid 源码已成功复制到剪贴板！');
+  }).catch(err => {
+    showToast('复制失败: ' + err.message);
+  });
+};
+
+// Render SVG Topology
+function renderTopologySVG() {
+  const svg = document.getElementById('topology-svg');
+  if (!svg) return;
+
+  svg.setAttribute('viewBox', '0 0 1080 670');
+  svg.setAttribute('width', '1080');
+  svg.setAttribute('height', '670');
+
+  let html = `
+    <defs>
+      <!-- Gradients for Containers -->
+      <linearGradient id="grad-web" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#1e1b4b" stop-opacity="0.8" />
+        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
+      </linearGradient>
+      <linearGradient id="grad-server" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#082f49" stop-opacity="0.8" />
+        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
+      </linearGradient>
+      <linearGradient id="grad-external" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#064e3b" stop-opacity="0.8" />
+        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
+      </linearGradient>
+      <linearGradient id="grad-database" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#451a03" stop-opacity="0.8" />
+        <stop offset="100%" stop-color="#090d19" stop-opacity="0.95" />
+      </linearGradient>
+
+      <!-- Arrow Markers -->
+      <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+      </marker>
+      <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+      </marker>
+      <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+      </marker>
+    </defs>
+  `;
+
+  // Draw Containers
+  SYSTEM_CONTAINERS.forEach(c => {
+    html += `
+      <g class="svg-container-group" id="sys-container-${c.id}">
+        <rect class="svg-sys-container" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" fill="${c.fill}" stroke="${c.border}" />
+        <text class="svg-sys-label" x="${c.x + 16}" y="${c.y + 24}">${c.title}</text>
+      </g>
+    `;
+  });
+
+  // Connecting Links
+  const links = [
+    { from: 'web-purchase-request', to: 'srv-purchase-pr', color: '#818cf8' },
+    { from: 'web-purchase-request', to: 'srv-expense-facade', color: '#818cf8' },
+    { from: 'srv-expense-facade', to: 'db-pm', color: '#f59e0b' },
+    { from: 'srv-purchase-pr', to: 'db-pm', color: '#f59e0b' },
+    { from: 'srv-purchase-pr', to: 'db-base', color: '#f59e0b' },
+    { from: 'srv-purchase-pr', to: 'srv-purchase-plan', color: '#38bdf8' },
+    { from: 'web-purchase-plan', to: 'srv-purchase-plan', color: '#818cf8' },
+    { from: 'srv-purchase-plan', to: 'srv-purchase-po', color: '#38bdf8' },
+    { from: 'web-purchase-order', to: 'srv-purchase-po', color: '#818cf8' },
+    { from: 'srv-purchase-po', to: 'srv-purchase-contract', color: '#38bdf8' },
+    { from: 'web-purchase-contract', to: 'srv-purchase-contract', color: '#818cf8' },
+    { from: 'srv-purchase-contract', to: 'ext-wps', color: '#10b981' },
+    { from: 'srv-purchase-contract', to: 'srv-doc-pipeline', color: '#38bdf8' },
+    { from: 'srv-doc-pipeline', to: 'ext-cos', color: '#10b981' },
+    { from: 'srv-signature-session', to: 'ext-mobile-sign', color: '#10b981' },
+    { from: 'srv-signature-session', to: 'db-redis', color: '#f59e0b' },
+    { from: 'web-purchase-acceptance', to: 'srv-purchase-accept', color: '#818cf8' },
+    { from: 'srv-purchase-accept', to: 'db-base', color: '#f59e0b' },
+    { from: 'srv-purchase-invoice', to: 'ext-ocr', color: '#10b981' },
+    { from: 'srv-purchase-invoice', to: 'db-base', color: '#f59e0b' },
+    { from: 'web-purchase-payment', to: 'srv-purchase-payment', color: '#818cf8' },
+    { from: 'srv-purchase-payment', to: 'srv-purchase-invoice', color: '#38bdf8' },
+    { from: 'srv-purchase-payment', to: 'db-base', color: '#f59e0b' },
+    { from: 'srv-execution-ledger', to: 'db-base', color: '#f59e0b' }
+  ];
+
+  links.forEach((l, idx) => {
+    const fNode = NODE_LAYOUT[l.from];
+    const tNode = NODE_LAYOUT[l.to];
+    if (fNode && tNode) {
+      const x1 = fNode.x + fNode.w / 2;
+      const y1 = fNode.y + fNode.h / 2;
+      const x2 = tNode.x + tNode.w / 2;
+      const y2 = tNode.y + tNode.h / 2;
+      const cx = (x1 + x2) / 2;
+      const cy = (y1 + y2) / 2;
+      html += `
+        <path id="link-${idx}" class="svg-link" data-from="${l.from}" data-to="${l.to}"
+          d="M ${x1} ${y1} Q ${cx} ${cy - 10} ${x2} ${y2}"
+          stroke="${l.color}" marker-end="url(#arrow-cyan)" />
+      `;
+    }
+  });
+
+  // Draw Nodes
+  Object.keys(NODE_LAYOUT).forEach(nodeId => {
+    const n = NODE_LAYOUT[nodeId];
+    let borderColor = '#38bdf8';
+    let bgColor = '#111a2e';
+
+    if (n.sys === 'web') { borderColor = '#818cf8'; bgColor = '#131b36'; }
+    else if (n.sys === 'server') { borderColor = '#38bdf8'; bgColor = '#0f223d'; }
+    else if (n.sys === 'external') { borderColor = '#34d399'; bgColor = '#0f2c25'; }
+    else if (n.sys === 'database') { borderColor = '#fbbf24'; bgColor = '#291c08'; }
+
+    html += `
+      <g class="svg-node" id="node-${nodeId}" data-id="${nodeId}" data-sys="${n.sys}" onclick="window.inspectNode('${nodeId}')">
+        <rect class="svg-node-bg" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}"
+          fill="${bgColor}" stroke="${borderColor}" />
+        <text class="svg-node-title" x="${n.x + 12}" y="${n.y + 24}">${n.name}</text>
+        <text class="svg-node-sub" x="${n.x + 12}" y="${n.y + 42}">${n.sub}</text>
+      </g>
+    `;
+  });
+
+  svg.innerHTML = html;
+  applyTransform();
+}
+
+// Pan & Zoom Engine for Topology
+function initTopologyPanZoom() {
+  const viewport = document.getElementById('topology-viewport');
+  const svg = document.getElementById('topology-svg');
+  if (!viewport || !svg) return;
+
+  viewport.addEventListener('mousedown', (e) => {
+    // Only drag when target is background or viewport
+    if (e.target.closest('.svg-node')) return;
+    appState.isDragging = true;
+    appState.dragStartX = e.clientX - appState.panX;
+    appState.dragStartY = e.clientY - appState.panY;
+    viewport.classList.add('dragging');
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!appState.isDragging) return;
+    appState.panX = e.clientX - appState.dragStartX;
+    appState.panY = e.clientY - appState.dragStartY;
+    applyTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (appState.isDragging) {
+      appState.isDragging = false;
+      viewport.classList.remove('dragging');
+    }
+  });
+
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newScale = Math.min(Math.max(appState.zoomScale * zoomFactor, 0.4), 2.8);
+    
+    // Zoom centered on cursor
+    const rect = viewport.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left - rect.width / 2;
+    const mouseY = e.clientY - rect.top - rect.height / 2;
+
+    appState.panX -= (mouseX - appState.panX) * (zoomFactor - 1);
+    appState.panY -= (mouseY - appState.panY) * (zoomFactor - 1);
+    appState.zoomScale = newScale;
+
+    applyTransform();
+  }, { passive: false });
+
+  viewport.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.svg-node')) return;
+    resetTopologyZoom();
+  });
+}
+
+function applyTransform() {
+  const svg = document.getElementById('topology-svg');
+  if (!svg) return;
+  svg.style.transform = `translate(${appState.panX}px, ${appState.panY}px) scale(${appState.zoomScale})`;
+}
+
+window.zoomTopology = function(factor) {
+  appState.zoomScale = Math.min(Math.max(appState.zoomScale * factor, 0.4), 2.8);
+  applyTransform();
+};
+
+window.resetTopologyZoom = function() {
+  appState.zoomScale = 1.0;
+  appState.panX = 0;
+  appState.panY = 0;
+  applyTransform();
+  showToast('画布已重置为 100% 原始视图');
+};
+
+window.fitTopology = function() {
+  const viewport = document.getElementById('topology-viewport');
+  if (!viewport) return;
+  const widthRatio = (viewport.clientWidth - 40) / 1080;
+  const heightRatio = (viewport.clientHeight - 40) / 670;
+  appState.zoomScale = Math.min(Math.max(Math.min(widthRatio, heightRatio), 0.5), 1.4);
+  appState.panX = 0;
+  appState.panY = 0;
+  applyTransform();
+  showToast('已自适应窗口大小');
+};
+
+// Highlight Call Chain on Topology
+window.highlightTopologyCallChain = function(chainKey) {
+  const chainMeta = {
+    'flow-procurement-lifecycle': [
+      'web-purchase-request', 'srv-purchase-pr', 'srv-purchase-plan', 'web-purchase-plan',
+      'srv-purchase-po', 'web-purchase-order', 'srv-purchase-contract', 'web-purchase-contract',
+      'srv-purchase-accept', 'web-purchase-acceptance', 'srv-purchase-invoice', 'srv-purchase-payment',
+      'web-purchase-payment', 'db-base'
+    ],
+    'flow-scan-to-sign': [
+      'web-purchase-contract', 'srv-signature-session', 'ext-mobile-sign', 'srv-doc-pipeline',
+      'ext-wps', 'ext-cos', 'db-redis', 'db-base'
+    ],
+    'flow-budget-dual-track': [
+      'web-purchase-request', 'srv-expense-facade', 'srv-purchase-pr', 'db-pm', 'db-base'
+    ],
+    'flow-doc-pipeline': [
+      'srv-purchase-contract', 'srv-doc-pipeline', 'ext-wps', 'ext-cos', 'db-base'
+    ],
+    'flow-execution-ledger': [
+      'srv-execution-ledger', 'srv-purchase-pr', 'srv-purchase-po', 'srv-purchase-contract',
+      'srv-purchase-accept', 'srv-purchase-invoice', 'srv-purchase-payment', 'db-base'
+    ]
+  };
+
+  const activeNodes = chainMeta[chainKey] || [];
+  const allNodes = document.querySelectorAll('.svg-node');
+  const allLinks = document.querySelectorAll('.svg-link');
+
+  allNodes.forEach(node => {
+    const id = node.getAttribute('data-id');
+    node.classList.remove('selected', 'upstream-highlight', 'downstream-highlight');
+    if (activeNodes.length === 0 || activeNodes.includes(id)) {
+      node.classList.remove('dimmed');
+      if (activeNodes.length > 0 && activeNodes.includes(id)) {
+        node.classList.add('chain-highlight');
+      } else {
+        node.classList.remove('chain-highlight');
+      }
+    } else {
+      node.classList.add('dimmed');
+      node.classList.remove('chain-highlight');
+    }
+  });
+
+  allLinks.forEach(link => {
+    link.classList.remove('link-upstream', 'link-downstream');
+    const from = link.getAttribute('data-from');
+    const to = link.getAttribute('data-to');
+    if (activeNodes.length > 0 && activeNodes.includes(from) && activeNodes.includes(to)) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
+};
+
+// Inspect Node Modal with Bidirectional Highlighting
 window.inspectNode = function(nodeId) {
   appState.selectedNode = nodeId;
-  document.querySelectorAll('.svg-node').forEach(n => n.classList.remove('selected'));
-  const targetNode = document.getElementById(`node-${nodeId}`);
-  if (targetNode) targetNode.classList.add('selected');
 
   const meta = MODULE_CATALOG[nodeId] || {
     name: nodeId,
@@ -920,26 +1025,91 @@ window.inspectNode = function(nodeId) {
     guard: '符合架构规范'
   };
 
+  // 1. Calculate Upstream (Dependencies) & Downstream (Dependents)
+  const upstreams = meta.deps || [];
+  const downstreams = Object.keys(MODULE_CATALOG).filter(id => {
+    const m = MODULE_CATALOG[id];
+    return m.deps && m.deps.includes(nodeId);
+  });
+
+  // 2. Highlight on SVG Topology
+  const allNodes = document.querySelectorAll('.svg-node');
+  allNodes.forEach(node => {
+    const id = node.getAttribute('data-id');
+    node.classList.remove('selected', 'upstream-highlight', 'downstream-highlight', 'chain-highlight', 'dimmed');
+    
+    if (id === nodeId) {
+      node.classList.add('selected');
+    } else if (upstreams.includes(id)) {
+      node.classList.add('upstream-highlight');
+    } else if (downstreams.includes(id)) {
+      node.classList.add('downstream-highlight');
+    } else {
+      node.classList.add('dimmed');
+    }
+  });
+
+  // 3. Highlight Connecting Links
+  const allLinks = document.querySelectorAll('.svg-link');
+  allLinks.forEach(link => {
+    link.classList.remove('active', 'link-upstream', 'link-downstream');
+    const from = link.getAttribute('data-from');
+    const to = link.getAttribute('data-to');
+
+    if (from === nodeId && upstreams.includes(to)) {
+      link.classList.add('link-upstream');
+    } else if (downstreams.includes(from) && to === nodeId) {
+      link.classList.add('link-downstream');
+    }
+  });
+
+  // 4. Populate Right Drawer
   const drawer = document.getElementById('inspector-overlay');
   const title = document.getElementById('drawer-node-title');
   const sys = document.getElementById('drawer-node-sys');
   const role = document.getElementById('drawer-node-role');
   const pathEl = document.getElementById('drawer-node-path');
+  const upstreamContainer = document.getElementById('drawer-upstream-deps');
+  const downstreamContainer = document.getElementById('drawer-downstream-deps');
   const entrypointsList = document.getElementById('drawer-node-entrypoints');
 
   if (title) title.innerText = meta.name;
   if (sys) sys.innerHTML = `<span class="metric-pill pill-${meta.sys}">${meta.sys.toUpperCase()}</span>`;
   if (role) role.innerText = meta.role;
-  if (pathEl) pathEl.innerText = meta.path;
+  if (pathEl) {
+    pathEl.innerHTML = `<code>${meta.path}</code> <button class="btn btn-sm" style="margin-left:8px;" onclick="copyToClipboard('${meta.path}')">复制路径</button>`;
+  }
 
+  // Upstream pills
+  if (upstreamContainer) {
+    if (upstreams.length > 0) {
+      upstreamContainer.innerHTML = upstreams.map(uId => {
+        const uMeta = MODULE_CATALOG[uId] || { name: uId };
+        return `<button class="dep-pill upstream-pill" onclick="window.inspectNode('${uId}')">⚡ ${uMeta.name}</button>`;
+      }).join('');
+    } else {
+      upstreamContainer.innerHTML = '<span style="color:var(--text-dim); font-size:12px;">（作为底座模块，无上游依赖）</span>';
+    }
+  }
+
+  // Downstream pills
+  if (downstreamContainer) {
+    if (downstreams.length > 0) {
+      downstreamContainer.innerHTML = downstreams.map(dId => {
+        const dMeta = MODULE_CATALOG[dId] || { name: dId };
+        return `<button class="dep-pill downstream-pill" onclick="window.inspectNode('${dId}')">🎯 ${dMeta.name}</button>`;
+      }).join('');
+    } else {
+      downstreamContainer.innerHTML = '<span style="color:var(--text-dim); font-size:12px;">（作为顶层出口，无下游依赖）</span>';
+    }
+  }
+
+  // Entrypoints and guards
   if (entrypointsList) {
     let html = '';
     (meta.entrypoints || []).forEach(ep => {
       html += `<li class="code-list-item">⚡ <code>${ep}</code></li>`;
     });
-    if (meta.deps && meta.deps.length > 0) {
-      html += `<li class="code-list-item" style="color:#fbbf24;">🔗 上下游依赖: ${meta.deps.join(' -> ')}</li>`;
-    }
     if (meta.guard) {
       html += `<li class="code-list-item" style="color:#10b981;">🛡️ 核心保证: ${meta.guard}</li>`;
     }
@@ -947,6 +1117,86 @@ window.inspectNode = function(nodeId) {
   }
 
   if (drawer) drawer.style.display = 'flex';
+};
+
+window.closeInspector = function() {
+  const drawer = document.getElementById('inspector-overlay');
+  if (drawer) drawer.style.display = 'none';
+  document.querySelectorAll('.svg-node').forEach(n => {
+    n.classList.remove('selected', 'upstream-highlight', 'downstream-highlight', 'dimmed');
+  });
+  document.querySelectorAll('.svg-link').forEach(l => {
+    l.classList.remove('link-upstream', 'link-downstream');
+  });
+  appState.selectedNode = null;
+};
+
+window.copyToClipboard = function(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('✅ 源码路径已复制！');
+  }).catch(() => {});
+};
+
+// Export Markdown Architecture Report
+window.exportArchitectureReport = function() {
+  let md = `# Finance · 企业财务与采购数智化平台 Living Architecture 架构全景报告\n\n`;
+  md += `> 报告导出时间: ${new Date().toLocaleString('zh-CN')} · 托管于 GitHub Pages\n\n`;
+  md += `## 一、 平台架构核心指标\n\n`;
+  md += `- **后端微内核**: FastAPI 框架 (302+ RESTful 业务端点)\n`;
+  md += `- **前端工作台**: Vue 3 + Element Plus + Pinia + TailwindCSS\n`;
+  md += `- **数据库集群**: MySQL (三库物理隔离: base, pm, manpower) + Redis 7.0 分布式缓存\n`;
+  md += `- **外部中台协同**: 金山 WPS WebOffice + 腾讯云 COS + 金税 OCR + 外部 OA 审批流\n`;
+  md += `- **业务防御门禁**: 12 道业务防线与硬门禁已全部通过静态合规核验\n\n`;
+
+  md += `## 二、 核心业务模块与领域服务 (22 核心模块)\n\n`;
+  md += `| 模块 ID | 模块名称 | 系统层级 | 源码路径 | 核心 Entrypoint | 业务不变量门禁 |\n`;
+  md += `|---|---|---|---|---|---|\n`;
+
+  Object.keys(MODULE_CATALOG).forEach(id => {
+    const m = MODULE_CATALOG[id];
+    md += `| \`${id}\` | ${m.name} | ${m.sys.toUpperCase()} | \`${m.path}\` | \`${m.entrypoints.join(', ')}\` | ${m.guard} |\n`;
+  });
+
+  md += `\n## 三、 五大高难业务核心调用链路 (时序闭环)\n\n`;
+  Object.keys(MERMAID_DIAGRAMS).forEach(key => {
+    const d = MERMAID_DIAGRAMS[key];
+    md += `### ${d.title}\n\n${d.desc}\n\n\`\`\`mermaid\n${d.code}\n\`\`\`\n\n`;
+  });
+
+  md += `## 四、 跨版本演进追踪记录\n\n`;
+  if (appState.versions && appState.versions.length > 0) {
+    appState.versions.forEach(v => {
+      md += `- **[${v.repo}] ${v.shortSha}** (${v.date}): ${v.message} by *${v.author}*\n`;
+    });
+  }
+
+  // Trigger download
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Finance_OA_Living_Architecture_Report_${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📄 Markdown 架构评审报告已开始下载！');
+};
+
+// Export SVG Topology
+window.exportTopologySVG = function() {
+  const svg = document.getElementById('topology-svg');
+  if (!svg) return;
+  const cloned = svg.cloneNode(true);
+  cloned.style.transform = 'none';
+  const serializer = new XMLSerializer();
+  const svgString = serializer.serializeToString(cloned);
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Finance_Living_Architecture_Topology_${new Date().toISOString().slice(0,10)}.svg`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📸 高清 SVG 拓扑图已开始下载！');
 };
 
 // Load Version History & Diff Mode
@@ -980,8 +1230,9 @@ async function loadVersionHistory() {
 async function switchVersion(sha) {
   if (sha === 'latest') {
     document.querySelectorAll('.svg-node').forEach(node => {
-      node.classList.remove('chain-highlight', 'dimmed');
+      node.classList.remove('chain-highlight', 'dimmed', 'selected');
     });
+    showToast('已切回最新 HEAD 基线架构');
     return;
   }
   try {
@@ -1000,6 +1251,7 @@ async function switchVersion(sha) {
         node.classList.remove('chain-highlight');
       }
     });
+    showToast(`已切换至快照 [${snap.repo}] ${snap.shortSha}`);
   } catch (e) {
     console.error('Error switching version:', e);
   }
@@ -1013,7 +1265,6 @@ window.toggleDiffMode = function() {
     if (appState.isDiffMode) {
       btn.classList.add('btn-diff-active');
       btn.innerText = '⚡ 退出差异对比模式';
-      // switch to diff tab
       const diffTab = document.querySelector('[data-tab="diff"]');
       if (diffTab) diffTab.click();
     } else {
@@ -1073,6 +1324,7 @@ function renderModulesGrid() {
   if (!grid) return;
 
   grid.innerHTML = '';
+  let count = 0;
   Object.keys(NODE_LAYOUT).forEach(id => {
     const n = NODE_LAYOUT[id];
     let matchSys = appState.selectedSystem === 'all' || n.sys === appState.selectedSystem;
@@ -1080,6 +1332,7 @@ function renderModulesGrid() {
       (n.name.toLowerCase().includes(appState.searchQuery) || n.sub.toLowerCase().includes(appState.searchQuery) || id.toLowerCase().includes(appState.searchQuery));
 
     if (!matchSys || !matchQuery) return;
+    count++;
 
     const card = document.createElement('div');
     card.className = 'module-card';
@@ -1087,7 +1340,7 @@ function renderModulesGrid() {
       <div>
         <div class="card-top">
           <div class="card-title">${n.name}</div>
-          <span class="metric-pill pill-${n.sys}">${n.sys}</span>
+          <span class="metric-pill pill-${n.sys}">${n.sys.toUpperCase()}</span>
         </div>
         <div class="card-role">${n.sub}</div>
       </div>
@@ -1101,4 +1354,7 @@ function renderModulesGrid() {
     });
     grid.appendChild(card);
   });
+
+  const countBadge = document.getElementById('module-count-badge');
+  if (countBadge) countBadge.innerText = `${count} 个已验证模块`;
 }

@@ -1,130 +1,130 @@
 [
   {
-    "sha": "e02efd00fe864af1cc84a2d1a45123798d8d913f",
-    "shortSha": "e02efd0",
+    "sha": "c0b5d6d8b390cb4441f48254ee8c8cfdc001034e",
+    "shortSha": "c0b5d6d",
     "repo": "sydo_oa_finance",
-    "date": "2026-10-21 18:24:48 +0800",
+    "date": "2026-10-22 11:40:37 +0800",
+    "author": "chenzaiqiang",
+    "message": "Merge remote-tracking branch 'origin/jiang' into chen"
+  },
+  {
+    "sha": "6c439e48a51d5b3dba557ffbab36fa359e0fc6de",
+    "shortSha": "6c439e4",
+    "repo": "sydo_oa_finance",
+    "date": "2026-10-22 11:31:39 +0800",
+    "author": "jiang",
+    "message": "feat: 采购计划编辑页面"
+  },
+  {
+    "sha": "4527dfc7abb2228f00cac5364a87c22e800ceec8",
+    "shortSha": "4527dfc",
+    "repo": "finance-frontend",
+    "date": "2026-10-22 11:25:57 +0800",
+    "author": "jiang",
+    "message": "feat: 采购计划页面问题"
+  },
+  {
+    "sha": "e9c36b5a0dbec84cd2030c96a087c25aec28e740",
+    "shortSha": "e9c36b5",
+    "repo": "sydo_oa_finance",
+    "date": "2026-10-22 10:08:39 +0800",
+    "author": "jiang",
+    "message": "feat: 采购申请单项目名称"
+  },
+  {
+    "sha": "403e454a9c3198fb18ba63fd4a04398e93126caa",
+    "shortSha": "403e454",
+    "repo": "sydo_oa_finance",
+    "date": "2026-10-22 09:02:32 +0800",
     "author": "chenzaiqiang",
     "message": "Merge remote-tracking branch 'origin/finance-serve' into chen"
   },
   {
-    "sha": "2c72af7e94f5fb136671841a35b18b31a2b07b8e",
-    "shortSha": "2c72af7",
-    "repo": "finance-frontend",
-    "date": "2026-10-21 18:23:31 +0800",
-    "author": "xupeng",
-    "message": "feat(purchase-order): 列表展示合同验收开票付款字段"
-  },
-  {
-    "sha": "0f93d5f220b3fbe3f1390afc2fad26f6c6dab02b",
-    "shortSha": "0f93d5f",
+    "sha": "3d191a94bd7b906fa7f7acce9532d0cff82fb004",
+    "shortSha": "3d191a9",
     "repo": "sydo_oa_finance",
-    "date": "2026-10-21 18:23:20 +0800",
+    "date": "2026-10-22 00:25:00 +0800",
     "author": "xupeng",
-    "message": "feat(purchase-order): 列表补充下游汇总字段并从申请明细带回税率"
+    "message": "fix(purchase-settlement): 出款发票可选订单按审批通过验收（含明细归属）"
   },
   {
-    "sha": "514f5f35090e28505f07d5325c0300abe2e0b281",
-    "shortSha": "514f5f3",
+    "sha": "692235df04bc541305159f28a400998ed1449573",
+    "shortSha": "692235d",
     "repo": "finance-frontend",
-    "date": "2026-10-21 18:03:41 +0800",
-    "author": "jiang",
-    "message": "feat: 采购计划的采购类型"
+    "date": "2026-10-22 00:18:00 +0800",
+    "author": "xupeng",
+    "message": "feat(purchase-order): 履约字段改详情，列表加合同与发票上传"
   },
   {
-    "sha": "48901b30e0e92f213c4be40e52838a5ae5b5aeac",
-    "shortSha": "48901b3",
+    "sha": "34505aa02e4aba81a203a30face4b53f744d57ec",
+    "shortSha": "34505aa",
+    "repo": "finance-frontend",
+    "date": "2026-10-21 23:56:00 +0800",
+    "author": "xupeng",
+    "message": "feat(ui): 附件上传与发票识别校验增加全屏遮罩"
+  },
+  {
+    "sha": "a5bbd6d4d3e5d3bee38f6255258da2bb95416eeb",
+    "shortSha": "a5bbd6d",
     "repo": "sydo_oa_finance",
-    "date": "2026-10-21 17:30:16 +0800",
-    "author": "jiang",
-    "message": "Merge branch 'finance-serve' into jiang"
+    "date": "2026-10-21 23:50:00 +0800",
+    "author": "xupeng",
+    "message": "fix(purchase-acceptance): 是否固定资产默认否"
   },
   {
-    "sha": "50922d861d0230045e88792180291c8b183c5784",
-    "shortSha": "50922d8",
+    "sha": "cc2984f81483ae5595c5e78335bfa4edafe3c637",
+    "shortSha": "cc2984f",
+    "repo": "finance-frontend",
+    "date": "2026-10-21 23:42:00 +0800",
+    "author": "xupeng",
+    "message": "feat(ui): PDF/单据生成增加全屏锁定 loading"
+  },
+  {
+    "sha": "3f85dc56df308a348a21620281f7356a9120ba99",
+    "shortSha": "3f85dc5",
     "repo": "sydo_oa_finance",
-    "date": "2026-10-21 17:28:40 +0800",
-    "author": "chenzaiqiang",
-    "message": "Merge remote-tracking branch 'origin/finance-serve' into chen"
-  },
-  {
-    "sha": "1ed28a25aabac5535c34fae9be8d0aaf56428958",
-    "shortSha": "1ed28a2",
-    "repo": "finance-frontend",
-    "date": "2026-10-21 17:22:47 +0800",
+    "date": "2026-10-21 23:35:00 +0800",
     "author": "xupeng",
-    "message": "fix(purchase-plan): 生成订单弹窗展示供应商与项目编号"
+    "message": "fix(purchase-acceptance): 验收单 PDF 项目名称取所属项目并优化单元格样式"
   },
   {
-    "sha": "6c4dd7a53b3752cf519c98289073838c2e958b0a",
-    "shortSha": "6c4dd7a",
+    "sha": "485023a13844f6a18c4b01a6c241268026ec65be",
+    "shortSha": "485023a",
+    "repo": "finance-frontend",
+    "date": "2026-10-21 23:28:00 +0800",
+    "author": "xupeng",
+    "message": "feat(outsourcing): 采购列表编号进详情并去掉操作列查看"
+  },
+  {
+    "sha": "409cdde86bd30b5e055d8a5f4430b0e94551398d",
+    "shortSha": "409cdde",
+    "repo": "finance-frontend",
+    "date": "2026-10-21 23:14:00 +0800",
+    "author": "xupeng",
+    "message": "feat(purchase-request): 列表验收状态、悬停验收明细与筛选列调整"
+  },
+  {
+    "sha": "bec67faaf8cdc49fc55c5984a7c4d1eaf24c2de4",
+    "shortSha": "bec67fa",
     "repo": "sydo_oa_finance",
-    "date": "2026-10-21 17:22:46 +0800",
+    "date": "2026-10-21 23:08:00 +0800",
     "author": "xupeng",
-    "message": "fix(purchase-order): 多库环境下指定 base 事务连接"
+    "message": "feat(purchase-acceptance): 可验明细 soft 预览并兼容失效计划残留"
   },
   {
-    "sha": "956063f39bd00f6e07a5ec2069955dd8f2197d4e",
-    "shortSha": "956063f",
-    "repo": "sydo_oa_finance",
-    "date": "2026-10-21 16:48:25 +0800",
-    "author": "chenzaiqiang",
-    "message": "Merge remote-tracking branch 'origin/finance-serve' into chen"
-  },
-  {
-    "sha": "ed820fbccbb541bf1e790a34c433b3ddaa76dcce",
-    "shortSha": "ed820fb",
+    "sha": "d02a1ce97f0506a704647112f754f9122ad587b0",
+    "shortSha": "d02a1ce",
     "repo": "finance-frontend",
-    "date": "2026-10-21 16:47:27 +0800",
+    "date": "2026-10-21 23:02:00 +0800",
     "author": "xupeng",
-    "message": "fix(purchase-plan): 报价供应商可直接输入且不可重复"
+    "message": "feat(outsourcing): 所属项目统一为编号_名称单行展示"
   },
   {
-    "sha": "6a1a1213766106a510604884d1f6817593f3e45a",
-    "shortSha": "6a1a121",
-    "repo": "sydo_oa_finance",
-    "date": "2026-10-21 16:47:27 +0800",
-    "author": "xupeng",
-    "message": "fix(purchase-plan): 报价供应商按名称/id 禁止重复"
-  },
-  {
-    "sha": "1c3fe9fc42e2ecebcff114725b46b67e51d9006c",
-    "shortSha": "1c3fe9f",
-    "repo": "sydo_oa_finance",
-    "date": "2026-10-21 16:43:47 +0800",
-    "author": "jiang",
-    "message": "Merge branch 'finance-serve' into jiang"
-  },
-  {
-    "sha": "30017607802d33d836d61cad770a871388ee1141",
-    "shortSha": "3001760",
+    "sha": "c887dae8fe702f259012d7958d194d0e0acb22a5",
+    "shortSha": "c887dae",
     "repo": "finance-frontend",
-    "date": "2026-10-21 16:41:09 +0800",
+    "date": "2026-10-21 22:50:00 +0800",
     "author": "xupeng",
-    "message": "feat(purchase-plan): 列表与新建弹窗支持项目编号筛选"
-  },
-  {
-    "sha": "f2158ba536e60f3b6a3a87539b1fb9695cfc87fd",
-    "shortSha": "f2158ba",
-    "repo": "finance-frontend",
-    "date": "2026-10-21 16:31:45 +0800",
-    "author": "xupeng",
-    "message": "fix(purchase-request): 明细按物料名称+规格判重"
-  },
-  {
-    "sha": "79db85b6e32087a728ddd59686d7133b21efc34b",
-    "shortSha": "79db85b",
-    "repo": "finance-frontend",
-    "date": "2026-10-21 15:28:54 +0800",
-    "author": "jiang",
-    "message": "feate:采购明细修改"
-  },
-  {
-    "sha": "4da1dd16372c07185cecb80a9dd5164a1cd02f15",
-    "shortSha": "4da1dd1",
-    "repo": "finance-frontend",
-    "date": "2026-10-21 14:50:43 +0800",
-    "author": "xupeng",
-    "message": "feat(purchase-plan): 组合不限供应商/方式，计划页去掉采购方式"
+    "message": "feat(outsourcing): 新增单据编号可点击复制组件 DocNoLink"
   }
 ]

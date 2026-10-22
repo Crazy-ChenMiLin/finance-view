@@ -1,0 +1,17 @@
+{
+  "baseSha": "6c439e48a51d5b3dba557ffbab36fa359e0fc6de",
+  "baseShortSha": "6c439e4",
+  "targetSha": "c0b5d6d8b390cb4441f48254ee8c8cfdc001034e",
+  "targetShortSha": "c0b5d6d",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": []
+}

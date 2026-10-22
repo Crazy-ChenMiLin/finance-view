@@ -1,0 +1,20 @@
+{
+  "baseSha": "403e454a9c3198fb18ba63fd4a04398e93126caa",
+  "baseShortSha": "403e454",
+  "targetSha": "e9c36b5a0dbec84cd2030c96a087c25aec28e740",
+  "targetShortSha": "e9c36b5",
+  "summary": {
+    "addedCount": 0,
+    "removedCount": 0,
+    "modifiedCount": 0,
+    "totalAffected": 0
+  },
+  "addedModules": [],
+  "removedModules": [],
+  "modifiedModules": [],
+  "affectedModuleIds": [],
+  "changedFiles": [
+    "app/api/service/purchase_request_service.py",
+    "app/utils/purchase_request_pdf.py"
+  ]
+}
